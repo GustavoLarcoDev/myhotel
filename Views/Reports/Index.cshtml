@@ -1,0 +1,534 @@
+@{
+    ViewData["Title"] = "Reports";
+    var currentPeriod = (string)ViewBag.CurrentPeriod;
+
+    // Work Orders
+    var woTotal = (int)ViewBag.WoTotal;
+    var woCompleted = (int)ViewBag.WoCompleted;
+    var woCompletionRate = (double)ViewBag.WoCompletionRate;
+    var woPending = (int)ViewBag.WoPending;
+    var woInProgress = (int)ViewBag.WoInProgress;
+    var woAvgResolutionHours = (double)ViewBag.WoAvgResolutionHours;
+    var woByPriority = (Dictionary<string, int>)ViewBag.WoByPriority;
+
+    // Complaints
+    var complaintsTotal = (int)ViewBag.ComplaintsTotal;
+    var complaintsResolved = (int)ViewBag.ComplaintsResolved;
+    var complaintsResolvedRate = (double)ViewBag.ComplaintsResolvedRate;
+    var complaintsOpen = (int)ViewBag.ComplaintsOpen;
+    var complaintsEscalated = (int)ViewBag.ComplaintsEscalated;
+    var complaintsEscalationRate = (double)ViewBag.ComplaintsEscalationRate;
+    var complaintsAvgResolutionHours = (double)ViewBag.ComplaintsAvgResolutionHours;
+    var complaintsByStatus = (Dictionary<string, int>)ViewBag.ComplaintsByStatus;
+
+    // Daily Checks
+    var checksTotal = (int)ViewBag.ChecksTotal;
+    var checksCompleted = (int)ViewBag.ChecksCompleted;
+    var checksCompletionRate = (double)ViewBag.ChecksCompletionRate;
+    var checksByCategory = (Dictionary<string, int[]>)ViewBag.ChecksByCategory;
+
+    // Logs
+    var logsCount = (int)ViewBag.LogsCount;
+    var logsUnread = (int)ViewBag.LogsUnread;
+    var logsByCategory = (Dictionary<string, int>)ViewBag.LogsByCategory;
+
+    // Pass Logs
+    var passLogsCount = (int)ViewBag.PassLogsCount;
+    var passLogsUnread = (int)ViewBag.PassLogsUnread;
+
+    // Rooms
+    var roomsTotal = (int)ViewBag.RoomsTotal;
+    var roomsOccupied = (int)ViewBag.RoomsOccupied;
+    var roomsOccupancyRate = (double)ViewBag.RoomsOccupancyRate;
+    var roomsByStatus = (Dictionary<string, int>)ViewBag.RoomsByStatus;
+
+    // PM
+    var pmTotal = (int)ViewBag.PmTotal;
+    var pmOverdue = (int)ViewBag.PmOverdue;
+    var pmUpcoming = (int)ViewBag.PmUpcoming;
+    var pmCompleted = (int)ViewBag.PmCompleted;
+
+    // Lost & Found
+    var lostFoundTotal = (int)ViewBag.LostFoundTotal;
+    var lostFoundClaimed = (int)ViewBag.LostFoundClaimed;
+
+    // Assets
+    var assetsTotal = (int)ViewBag.AssetsTotal;
+    var assetsWarrantyExpiring = (int)ViewBag.AssetsWarrantyExpiring;
+
+    // Budget
+    var expensesTotal = (decimal)ViewBag.ExpensesTotal;
+    var budgetTotal = (decimal)ViewBag.BudgetTotal;
+    var budgetUtilization = (double)ViewBag.BudgetUtilization;
+    var expensesByCategory = (Dictionary<string, decimal>)ViewBag.ExpensesByCategory;
+
+    // Inventory
+    var inventoryTotal = (int)ViewBag.InventoryTotal;
+    var inventoryLowStock = (int)ViewBag.InventoryLowStock;
+
+    // Meetings & Evaluations
+    var meetingsCount = (int)ViewBag.MeetingsCount;
+    var evaluationsCount = (int)ViewBag.EvaluationsCount;
+    var evaluationsAvgRating = (double)ViewBag.EvaluationsAvgRating;
+    var hkRatingsCount = (int)ViewBag.HkRatingsCount;
+    var hkRatingsAvg = (double)ViewBag.HkRatingsAvg;
+    var schedulesCount = (int)ViewBag.SchedulesCount;
+}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Reports</h1>
+        <p class="text-sm text-gray-500 mt-1">Comprehensive overview across all modules</p>
+    </div>
+    <div>
+        <form method="get" asp-action="Index" id="periodForm">
+            @{
+                var periodOptions = new[] { ("today", "Today"), ("week", "This Week"), ("month", "This Month"), ("all", "All Time") };
+            }
+            <select name="period" onchange="document.getElementById('periodForm').submit()"
+                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white">
+                @foreach (var (pVal, pLabel) in periodOptions)
+                {
+                    if (currentPeriod == pVal)
+                    {
+                        <option value="@pVal" selected="selected">@pLabel</option>
+                    }
+                    else
+                    {
+                        <option value="@pVal">@pLabel</option>
+                    }
+                }
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards Row -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <!-- Work Orders -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Orders</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@woTotal</div>
+        <div class="flex items-center gap-1 mt-2">
+            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                <div class="bg-green-500 h-1.5 rounded-full" style="width: @(woCompletionRate)%"></div>
+            </div>
+            <span class="text-xs text-green-600 font-medium">@(woCompletionRate)%</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">completed</div>
+    </div>
+
+    <!-- Complaints -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Complaints</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@complaintsTotal</div>
+        <div class="flex items-center gap-1 mt-2">
+            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                <div class="bg-blue-500 h-1.5 rounded-full" style="width: @(complaintsResolvedRate)%"></div>
+            </div>
+            <span class="text-xs text-blue-600 font-medium">@(complaintsResolvedRate)%</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">resolved</div>
+    </div>
+
+    <!-- Daily Checks -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Daily Checks</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@checksCompleted/@checksTotal</div>
+        <div class="flex items-center gap-1 mt-2">
+            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                <div class="bg-purple-500 h-1.5 rounded-full" style="width: @(checksCompletionRate)%"></div>
+            </div>
+            <span class="text-xs text-purple-600 font-medium">@(checksCompletionRate)%</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">completion</div>
+    </div>
+
+    <!-- Logs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Logs</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@logsCount</div>
+        <div class="mt-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">@logsUnread unread</span>
+        </div>
+    </div>
+
+    <!-- Rooms -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Rooms</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@roomsOccupied/@roomsTotal</div>
+        <div class="flex items-center gap-1 mt-2">
+            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                <div class="bg-indigo-500 h-1.5 rounded-full" style="width: @(roomsOccupancyRate)%"></div>
+            </div>
+            <span class="text-xs text-indigo-600 font-medium">@(roomsOccupancyRate)%</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">occupancy</div>
+    </div>
+
+    <!-- PM -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Maintenance</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@pmTotal</div>
+        <div class="mt-2">
+            @if (pmOverdue > 0)
+            {
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">@pmOverdue overdue</span>
+            }
+            else
+            {
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">0 overdue</span>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Sections -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Work Orders Detail -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Work Orders</h2>
+
+        <!-- By Status -->
+        <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-600 mb-3">By Status</h3>
+            <div class="space-y-2">
+                @{
+                    var woStatuses = new[] { ("pending", "Pending", woPending, "bg-yellow-500"), ("in-progress", "In Progress", woInProgress, "bg-blue-500"), ("completed", "Completed", woCompleted, "bg-green-500") };
+                }
+                @foreach (var (key, label, count, color) in woStatuses)
+                {
+                    var pct = woTotal > 0 ? Math.Round((double)count / woTotal * 100, 1) : 0;
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-24">@label</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="@color h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-16 text-right">@count (@(pct)%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- By Priority -->
+        <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-600 mb-3">By Priority</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                @{
+                    var priorities = new[] { ("low", "Low", "bg-gray-100 text-gray-600"), ("normal", "Normal", "bg-blue-100 text-blue-700"), ("high", "High", "bg-orange-100 text-orange-700"), ("urgent", "Urgent", "bg-red-100 text-red-700") };
+                }
+                @foreach (var (key, label, cls) in priorities)
+                {
+                    var count = woByPriority.ContainsKey(key) ? woByPriority[key] : 0;
+                    <div class="text-center p-2 rounded-lg @cls">
+                        <div class="text-lg font-bold">@count</div>
+                        <div class="text-xs">@label</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="border-t border-gray-100 pt-3">
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">Avg. Resolution Time</span>
+                <span class="font-medium text-gray-900">@(woAvgResolutionHours)h</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaints Detail -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Complaints</h2>
+
+        <!-- By Status -->
+        <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-600 mb-3">By Status</h3>
+            <div class="space-y-2">
+                @foreach (var kvp in complaintsByStatus)
+                {
+                    var pct = complaintsTotal > 0 ? Math.Round((double)kvp.Value / complaintsTotal * 100, 1) : 0;
+                    var barColor = kvp.Key switch
+                    {
+                        "open" => "bg-yellow-500",
+                        "in-progress" => "bg-blue-500",
+                        "resolved" => "bg-green-500",
+                        _ => "bg-gray-500"
+                    };
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-24 capitalize">@kvp.Key</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="@barColor h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-16 text-right">@kvp.Value (@(pct)%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-900">@(complaintsAvgResolutionHours)h</div>
+                <div class="text-xs text-gray-500">Avg Resolution</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-900">@complaintsEscalated</div>
+                <div class="text-xs text-gray-500">Escalated</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold @(complaintsEscalationRate > 20 ? "text-red-600" : "text-gray-900")">@(complaintsEscalationRate)%</div>
+                <div class="text-xs text-gray-500">Escalation Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Checks Detail -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Daily Checks</h2>
+
+        <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-600 mb-3">By Category Completion</h3>
+            <div class="space-y-2">
+                @foreach (var kvp in checksByCategory)
+                {
+                    int catTotal = kvp.Value[0];
+                    int catCompleted = kvp.Value[1];
+                    var pct = catTotal > 0 ? Math.Round((double)catCompleted / catTotal * 100, 1) : 0;
+                    var barColor = pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-red-500";
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-24 capitalize">@kvp.Key</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="@barColor h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-20 text-right">@catCompleted/@catTotal (@(pct)%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!checksByCategory.Any())
+        {
+            <p class="text-sm text-gray-400 text-center py-4">No daily checks found for this period.</p>
+        }
+    </div>
+
+    <!-- Rooms Detail -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Rooms</h2>
+
+        <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-600 mb-3">Status Distribution</h3>
+            <div class="space-y-2">
+                @foreach (var kvp in roomsByStatus)
+                {
+                    var pct = roomsTotal > 0 ? Math.Round((double)kvp.Value / roomsTotal * 100, 1) : 0;
+                    var barColor = kvp.Key switch
+                    {
+                        "occupied" => "bg-blue-500",
+                        "vacant-clean" => "bg-green-500",
+                        "vacant-dirty" => "bg-yellow-500",
+                        "out-of-order" => "bg-red-500",
+                        "maintenance" => "bg-orange-500",
+                        _ => "bg-gray-500"
+                    };
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-28 capitalize">@kvp.Key.Replace("-", " ")</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="@barColor h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-16 text-right">@kvp.Value (@(pct)%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!roomsByStatus.Any())
+        {
+            <p class="text-sm text-gray-400 text-center py-4">No rooms configured.</p>
+        }
+    </div>
+
+    <!-- Preventive Maintenance Detail -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Preventive Maintenance</h2>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-gray-900">@pmTotal</div>
+                <div class="text-xs text-gray-500">Total PMs</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">@pmCompleted</div>
+                <div class="text-xs text-gray-500">Completed</div>
+            </div>
+            <div class="@(pmOverdue > 0 ? "bg-red-50" : "bg-gray-50") rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold @(pmOverdue > 0 ? "text-red-600" : "text-gray-900")">@pmOverdue</div>
+                <div class="text-xs text-gray-500">Overdue</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">@pmUpcoming</div>
+                <div class="text-xs text-gray-500">Upcoming (7d)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Overview -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Budget (Current Month)</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-900">$@expensesTotal.ToString("N2")</div>
+                <div class="text-xs text-gray-500">Expenses</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-900">$@budgetTotal.ToString("N2")</div>
+                <div class="text-xs text-gray-500">Budget</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold @(budgetUtilization > 100 ? "text-red-600" : budgetUtilization > 80 ? "text-yellow-600" : "text-green-600")">@(budgetUtilization)%</div>
+                <div class="text-xs text-gray-500">Utilization</div>
+            </div>
+        </div>
+
+        @if (expensesByCategory.Any())
+        {
+            <h3 class="text-sm font-medium text-gray-600 mb-3">Expenses by Category</h3>
+            <div class="space-y-2">
+                @foreach (var kvp in expensesByCategory.OrderByDescending(x => x.Value))
+                {
+                    var pct = expensesTotal > 0 ? Math.Round((double)(kvp.Value / expensesTotal) * 100, 1) : 0;
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-28">@kvp.Key</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-indigo-500 h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-24 text-right">$@kvp.Value.ToString("N2")</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-sm text-gray-400 text-center py-4">No expenses this month.</p>
+        }
+    </div>
+</div>
+
+<!-- Additional Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-6">
+    <!-- Pass Logs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pass Logs</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@passLogsCount</div>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 mt-2">@passLogsUnread unread</span>
+    </div>
+
+    <!-- Lost & Found -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lost & Found</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@lostFoundTotal</div>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 mt-2">@lostFoundClaimed claimed</span>
+    </div>
+
+    <!-- Assets -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Assets</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@assetsTotal</div>
+        @if (assetsWarrantyExpiring > 0)
+        {
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 mt-2">@assetsWarrantyExpiring warranty exp.</span>
+        }
+        else
+        {
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 mt-2">All good</span>
+        }
+    </div>
+
+    <!-- Inventory -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Inventory</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@inventoryTotal</div>
+        @if (inventoryLowStock > 0)
+        {
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 mt-2">@inventoryLowStock low stock</span>
+        }
+        else
+        {
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 mt-2">Stocked</span>
+        }
+    </div>
+
+    <!-- Meetings -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Meetings</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@meetingsCount</div>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 mt-2">@schedulesCount schedules</span>
+    </div>
+
+    <!-- Evaluations -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Evaluations</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">@evaluationsCount</div>
+        <div class="mt-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Avg: @(evaluationsAvgRating)/5</span>
+        </div>
+    </div>
+</div>
+
+<!-- Logs & HK Ratings Detail Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <!-- Logs by Category -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Logs by Category</h2>
+        @if (logsByCategory.Any())
+        {
+            <div class="space-y-2">
+                @foreach (var kvp in logsByCategory.OrderByDescending(x => x.Value))
+                {
+                    var pct = logsCount > 0 ? Math.Round((double)kvp.Value / logsCount * 100, 1) : 0;
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-500 w-24 capitalize">@kvp.Key</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-teal-500 h-2.5 rounded-full" style="width: @(pct)%"></div>
+                        </div>
+                        <span class="text-xs font-medium text-gray-700 w-16 text-right">@kvp.Value (@(pct)%)</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-sm text-gray-400 text-center py-4">No logs for this period.</p>
+        }
+    </div>
+
+    <!-- HK Ratings -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Housekeeping Ratings</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-gray-900">@hkRatingsCount</div>
+                <div class="text-xs text-gray-500">Total Ratings</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">@(hkRatingsAvg)</div>
+                <div class="text-xs text-gray-500">Avg Stars (out of 5)</div>
+            </div>
+        </div>
+        @if (hkRatingsAvg > 0)
+        {
+            <div class="mt-4 flex items-center justify-center gap-1">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    var filled = i <= Math.Round(hkRatingsAvg);
+                    <svg class="w-6 h-6 @(filled ? "text-yellow-400" : "text-gray-200")" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                }
+            </div>
+        }
+    </div>
+</div>

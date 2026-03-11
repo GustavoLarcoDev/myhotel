@@ -1,0 +1,119 @@
+@model List<Permission>
+@using MyHotel.Web.Models.Entities
+@{
+    ViewData["Title"] = "Roles & Permissions";
+    var rolePermissions = ViewBag.RolePermissions as List<RolePermission> ?? new List<RolePermission>();
+    var roles = ViewBag.Roles as AppRole[] ?? Enum.GetValues<AppRole>();
+    var modules = Model.Select(p => p.Module).Distinct().ToList();
+}
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Roles & Permissions</h1>
+        <p class="text-sm text-gray-500 mt-1">Permission matrix showing which roles have access to each feature</p>
+    </div>
+
+    <!-- Role Legend -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <span class="text-sm font-medium text-gray-700">Roles:</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Admin - Full Access</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">GM - Full Access</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">AGM - Full Access</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Dept Manager</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Employee</span>
+        </div>
+    </div>
+
+    <!-- Permissions Matrix -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">Module</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-40 bg-gray-50">Permission</th>
+                        @foreach (var role in roles)
+                        {
+                            var headerColor = role switch
+                            {
+                                AppRole.Admin => "text-red-700",
+                                AppRole.GeneralManager => "text-purple-700",
+                                AppRole.AssistantGM => "text-indigo-700",
+                                AppRole.DepartmentManager => "text-blue-700",
+                                AppRole.Employee => "text-gray-700",
+                                _ => "text-gray-700"
+                            };
+                            var roleName = role switch
+                            {
+                                AppRole.Admin => "Admin",
+                                AppRole.GeneralManager => "GM",
+                                AppRole.AssistantGM => "AGM",
+                                AppRole.DepartmentManager => "Dept Mgr",
+                                AppRole.Employee => "Employee",
+                                _ => role.ToString()
+                            };
+                            <th class="px-4 py-3 text-center text-xs font-semibold @headerColor uppercase tracking-wider">@roleName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @{
+                        string? lastModule = null;
+                    }
+                    @foreach (var perm in Model)
+                    {
+                        var isNewModule = perm.Module != lastModule;
+                        lastModule = perm.Module;
+
+                        <tr class="@(isNewModule ? "border-t-2 border-gray-200" : "") hover:bg-gray-50">
+                            <td class="px-6 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                                @if (isNewModule)
+                                {
+                                    @perm.Module
+                                }
+                            </td>
+                            <td class="px-6 py-3 sticky left-40 bg-white">
+                                <div class="text-sm text-gray-900">@perm.Name</div>
+                                @if (!string.IsNullOrEmpty(perm.Description))
+                                {
+                                    <div class="text-xs text-gray-500">@perm.Description</div>
+                                }
+                            </td>
+                            @foreach (var role in roles)
+                            {
+                                var hasPermission = role == AppRole.Admin ||
+                                                   role == AppRole.GeneralManager ||
+                                                   role == AppRole.AssistantGM ||
+                                                   rolePermissions.Any(rp => rp.Role == role && rp.PermissionId == perm.Id);
+                                <td class="px-4 py-3 text-center">
+                                    @if (hasPermission)
+                                    {
+                                        <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-5 h-5 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p class="text-sm text-blue-800">
+            <span class="font-semibold">Note:</span> Admin, General Manager, and Assistant GM roles have full access to all permissions by default.
+            Department Manager and Employee permissions are controlled through the role-permission assignments above.
+            Individual user overrides can be configured on a per-user basis.
+        </p>
+    </div>
+</div>

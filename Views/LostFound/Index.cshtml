@@ -1,0 +1,282 @@
+@model List<LostFound>
+@{
+    ViewData["Title"] = "Lost & Found";
+    var currentStatus = (string)ViewBag.CurrentStatus;
+    var search = (string?)ViewBag.Search;
+    var totalCount = (int)ViewBag.TotalCount;
+    var foundCount = (int)ViewBag.FoundCount;
+    var claimedCount = (int)ViewBag.ClaimedCount;
+    var disposedCount = (int)ViewBag.DisposedCount;
+    var oldFoundCount = (int)ViewBag.OldFoundCount;
+}
+
+<!-- Header + Stats -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Lost & Found</h1>
+        <p class="text-sm text-gray-500 mt-1">Track found items, claims, and disposals</p>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-center">
+            <p class="text-lg font-bold text-yellow-700">@foundCount</p>
+            <p class="text-xs text-yellow-600">Found</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
+            <p class="text-lg font-bold text-green-700">@claimedCount</p>
+            <p class="text-xs text-green-600">Claimed</p>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 text-center">
+            <p class="text-lg font-bold text-gray-600">@disposedCount</p>
+            <p class="text-xs text-gray-500">Disposed</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-center">
+            <p class="text-lg font-bold text-blue-700">@totalCount</p>
+            <p class="text-xs text-blue-600">Total</p>
+        </div>
+    </div>
+</div>
+
+<!-- 90-Day Warning -->
+@if (oldFoundCount > 0)
+{
+    <div class="bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg mb-6 text-sm flex items-center gap-2">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span><strong>@oldFoundCount item(s)</strong> have been in storage for over 90 days. Consider disposing of unclaimed items.</span>
+    </div>
+}
+
+<!-- Create Form -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Report Found Item</h3>
+    <form method="post" action="/LostFound/Create" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        @Html.AntiForgeryToken()
+        <div>
+            <label class="text-xs text-gray-600 block mb-1">Item Description *</label>
+            <input type="text" name="itemDescription" required placeholder="Describe the item"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+            <label class="text-xs text-gray-600 block mb-1">Location Found</label>
+            <input type="text" name="location" placeholder="Where was it found?"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+            <label class="text-xs text-gray-600 block mb-1">Found By</label>
+            <input type="text" name="foundBy" placeholder="Who found it?"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+            <label class="text-xs text-gray-600 block mb-1">Storage Location</label>
+            <div class="flex gap-2">
+                <input type="text" name="storageLocation" placeholder="Where is it stored?"
+                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">
+                    Add Item
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Filter Tabs + Search -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+    <div class="flex gap-2">
+        <a href="/LostFound?status=all@(search != null ? $"&search={search}" : "")"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors @(currentStatus == "all" ? "bg-gray-800 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
+            All (@totalCount)
+        </a>
+        <a href="/LostFound?status=found@(search != null ? $"&search={search}" : "")"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors @(currentStatus == "found" ? "bg-yellow-500 text-white" : "text-yellow-600 hover:bg-yellow-50 border border-yellow-200")">
+            Found (@foundCount)
+        </a>
+        <a href="/LostFound?status=claimed@(search != null ? $"&search={search}" : "")"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors @(currentStatus == "claimed" ? "bg-green-600 text-white" : "text-green-600 hover:bg-green-50 border border-green-200")">
+            Claimed (@claimedCount)
+        </a>
+        <a href="/LostFound?status=disposed@(search != null ? $"&search={search}" : "")"
+           class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors @(currentStatus == "disposed" ? "bg-gray-500 text-white" : "text-gray-500 hover:bg-gray-100 border border-gray-200")">
+            Disposed (@disposedCount)
+        </a>
+    </div>
+    <form method="get" action="/LostFound" class="flex gap-2 sm:ml-auto">
+        <input type="hidden" name="status" value="@currentStatus" />
+        <input type="text" name="search" value="@search" placeholder="Search items..."
+               class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-48" />
+        <button type="submit" class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+            Search
+        </button>
+        @if (!string.IsNullOrEmpty(search))
+        {
+            <a href="/LostFound?status=@currentStatus" class="text-gray-400 hover:text-gray-600 px-2 py-1.5 text-sm">Clear</a>
+        }
+    </form>
+</div>
+
+<!-- Items -->
+@if (!Model.Any())
+{
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <p class="text-gray-500 text-sm">No items found.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var item in Model)
+        {
+            var daysSinceFound = (int)(DateTime.UtcNow - item.CreatedAt).TotalDays;
+            var isOld = item.Status == "found" && daysSinceFound >= 90;
+            var claimId = $"claim-{item.Id}";
+
+            var statusColor = item.Status switch
+            {
+                "found" => "bg-yellow-100 text-yellow-800 border-yellow-200",
+                "claimed" => "bg-green-100 text-green-800 border-green-200",
+                "disposed" => "bg-gray-100 text-gray-600 border-gray-200",
+                _ => "bg-gray-100 text-gray-600 border-gray-200"
+            };
+
+            var cardBorder = item.Status switch
+            {
+                "found" => isOld ? "border-amber-300" : "border-yellow-200",
+                "claimed" => "border-green-200",
+                "disposed" => "border-gray-200",
+                _ => "border-gray-200"
+            };
+
+            <div class="bg-white rounded-lg shadow-sm border @cardBorder @(item.Status == "disposed" ? "opacity-60" : "")">
+                <div class="p-4">
+                    <!-- Status + Days -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-medium px-2 py-1 rounded-full border @statusColor uppercase">@item.Status</span>
+                        <span class="text-xs text-gray-400">@daysSinceFound day(s) ago</span>
+                    </div>
+
+                    <!-- Description -->
+                    <h4 class="font-semibold text-gray-900 mb-2">@item.ItemDescription</h4>
+
+                    <!-- Details -->
+                    <div class="space-y-1 text-sm text-gray-600">
+                        @if (!string.IsNullOrEmpty(item.Location))
+                        {
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>Found at: @item.Location</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.FoundBy))
+                        {
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span>Found by: @item.FoundBy</span>
+                            </div>
+                        }
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Date found: @item.CreatedAt.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(item.StorageLocation))
+                        {
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                </svg>
+                                <span>Stored at: @item.StorageLocation</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Old item warning -->
+                    @if (isOld)
+                    {
+                        <div class="mt-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-2 rounded-lg">
+                            Over 90 days unclaimed. Consider disposal.
+                        </div>
+                    }
+
+                    <!-- Claimed Info -->
+                    @if (item.Status == "claimed")
+                    {
+                        <div class="mt-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm space-y-1">
+                            @if (!string.IsNullOrEmpty(item.ClaimedBy))
+                            {
+                                <p class="text-green-700"><span class="font-medium">Claimed by:</span> @item.ClaimedBy</p>
+                            }
+                            @if (!string.IsNullOrEmpty(item.GuestName))
+                            {
+                                <p class="text-green-700"><span class="font-medium">Guest:</span> @item.GuestName</p>
+                            }
+                            @if (item.ClaimedAt.HasValue)
+                            {
+                                <p class="text-green-600 text-xs">@item.ClaimedAt.Value.ToString("MMM dd, yyyy h:mm tt")</p>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Actions -->
+                <div class="border-t border-gray-100 px-4 py-3 flex flex-wrap gap-2">
+                    @if (item.Status == "found")
+                    {
+                        <button onclick="document.getElementById('@claimId').classList.toggle('hidden')"
+                                class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-700 transition-colors">
+                            Claim
+                        </button>
+                        <form method="post" action="/LostFound/Dispose" class="inline"
+                              onsubmit="return confirm('Mark this item as disposed?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-300 transition-colors">
+                                Dispose
+                            </button>
+                        </form>
+                    }
+                    <form method="post" action="/LostFound/Delete" class="inline ml-auto"
+                          onsubmit="return confirm('Delete this item permanently?')">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" class="text-red-500 hover:text-red-700 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-50 transition-colors">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Claim Form (hidden) -->
+                @if (item.Status == "found")
+                {
+                    <div id="@claimId" class="hidden border-t border-green-100 bg-green-50/50 px-4 py-3">
+                        <form method="post" action="/LostFound/Claim" class="space-y-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <div>
+                                <label class="text-xs text-gray-600 block mb-1">Claimed By (staff)</label>
+                                <input type="text" name="claimedBy" placeholder="Staff member name"
+                                       class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-600 block mb-1">Guest Name</label>
+                                <input type="text" name="guestName" placeholder="Guest who claimed it"
+                                       class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            </div>
+                            <button type="submit" class="bg-green-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors w-full">
+                                Confirm Claim
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}

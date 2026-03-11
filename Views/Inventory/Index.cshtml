@@ -1,0 +1,529 @@
+@model List<InventoryCategory>
+@{
+    ViewData["Title"] = "Inventory";
+    var currentType = (string)ViewBag.CurrentType;
+    var totalItems = (int)ViewBag.TotalItems;
+    var lowStockCount = (int)ViewBag.LowStockCount;
+    var addedToday = (int)ViewBag.AddedToday;
+    var usedToday = (int)ViewBag.UsedToday;
+    var recentTransactions = (List<InventoryTransaction>)ViewBag.RecentTransactions;
+
+    // Type color configuration
+    string accentColor, accentBg, accentBorder, accentHover, tabActive, tabInactive;
+    if (currentType == "cleaning")
+    {
+        accentColor = "text-purple-600";
+        accentBg = "bg-purple-50";
+        accentBorder = "border-purple-400";
+        accentHover = "hover:bg-purple-50";
+        tabActive = "bg-purple-600 text-white shadow-sm";
+        tabInactive = "text-purple-600 hover:bg-purple-50 border border-purple-200";
+    }
+    else if (currentType == "maintenance")
+    {
+        accentColor = "text-orange-600";
+        accentBg = "bg-orange-50";
+        accentBorder = "border-orange-400";
+        accentHover = "hover:bg-orange-50";
+        tabActive = "bg-orange-600 text-white shadow-sm";
+        tabInactive = "text-orange-600 hover:bg-orange-50 border border-orange-200";
+    }
+    else
+    {
+        accentColor = "text-blue-600";
+        accentBg = "bg-blue-50";
+        accentBorder = "border-blue-400";
+        accentHover = "hover:bg-blue-50";
+        tabActive = "bg-blue-600 text-white shadow-sm";
+        tabInactive = "text-blue-600 hover:bg-blue-50 border border-blue-200";
+    }
+
+    var typeDescriptions = new Dictionary<string, string>
+    {
+        { "market", "Front desk snacks, drinks, sundries" },
+        { "cleaning", "Housekeeping cleaning supplies" },
+        { "maintenance", "Maintenance tools and parts" }
+    };
+
+    var typeIcons = new Dictionary<string, string>
+    {
+        { "market", "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" },
+        { "cleaning", "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
+        { "maintenance", "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" }
+    };
+}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Inventory</h1>
+        <p class="text-sm text-gray-500 mt-1">@typeDescriptions[currentType]</p>
+    </div>
+</div>
+
+<!-- Type Tabs -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <a href="/Inventory?type=market"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "market" ? "bg-blue-600 text-white shadow-sm" : "text-blue-600 hover:bg-blue-50 border border-blue-200")">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["market"]" />
+        </svg>
+        Market
+    </a>
+    <a href="/Inventory?type=cleaning"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "cleaning" ? "bg-purple-600 text-white shadow-sm" : "text-purple-600 hover:bg-purple-50 border border-purple-200")">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["cleaning"]" />
+        </svg>
+        Cleaning
+    </a>
+    <a href="/Inventory?type=maintenance"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "maintenance" ? "bg-orange-600 text-white shadow-sm" : "text-orange-600 hover:bg-orange-50 border border-orange-200")">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["maintenance"]" />
+        </svg>
+        Maintenance
+    </a>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <!-- Total Items -->
+    <div class="bg-white rounded-xl border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg @accentBg flex items-center justify-center">
+                <svg class="w-5 h-5 @accentColor" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">@totalItems</p>
+                <p class="text-xs text-gray-500">Total Items</p>
+            </div>
+        </div>
+    </div>
+    <!-- Low Stock -->
+    <div class="bg-white rounded-xl border @(lowStockCount > 0 ? "border-red-200" : "border-gray-100") p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg @(lowStockCount > 0 ? "bg-red-50" : "bg-gray-50") flex items-center justify-center">
+                <svg class="w-5 h-5 @(lowStockCount > 0 ? "text-red-500" : "text-gray-400")" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold @(lowStockCount > 0 ? "text-red-600" : "text-gray-900")">@lowStockCount</p>
+                <p class="text-xs text-gray-500">Low Stock</p>
+            </div>
+        </div>
+    </div>
+    <!-- Added Today -->
+    <div class="bg-white rounded-xl border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">@addedToday</p>
+                <p class="text-xs text-gray-500">Added Today</p>
+            </div>
+        </div>
+    </div>
+    <!-- Used Today -->
+    <div class="bg-white rounded-xl border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">@usedToday</p>
+                <p class="text-xs text-gray-500">Used Today</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts -->
+@if (TempData["Success"] != null)
+{
+    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        @TempData["Error"]
+    </div>
+}
+
+<!-- Add Category -->
+<div class="bg-white rounded-xl border border-gray-100 p-4 mb-6">
+    <form method="post" action="/Inventory/CreateCategory" class="flex gap-3 items-end">
+        @Html.AntiForgeryToken()
+        <div class="flex-1">
+            <label class="text-xs font-medium text-gray-600 block mb-1">New Category</label>
+            <input type="text" name="name" placeholder="Category name" required
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <input type="hidden" name="type" value="@currentType" />
+        <button type="submit"
+                class="@tabActive px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Add Category
+        </button>
+    </form>
+</div>
+
+<!-- Empty State -->
+@if (!Model.Any())
+{
+    <div class="bg-white rounded-xl border border-gray-100 p-16 text-center">
+        <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+        <p class="text-gray-400 text-sm">No categories yet. Create one above to get started.</p>
+    </div>
+}
+
+<!-- Categories + Card Grid -->
+@foreach (var category in Model)
+{
+    var items = category.Items.OrderBy(i => i.Name).ToList();
+    var categoryLowStock = items.Count(i => i.Quantity <= i.MinStock);
+
+    <div class="mb-8">
+        <!-- Category Header -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-1 h-8 rounded-full @accentBorder border-2"></div>
+                <h2 class="text-lg font-bold text-gray-900">@category.Name</h2>
+                <span class="text-xs @accentBg @accentColor px-2.5 py-1 rounded-full font-medium">@items.Count item(s)</span>
+                @if (categoryLowStock > 0)
+                {
+                    <span class="text-xs bg-red-100 text-red-600 px-2.5 py-1 rounded-full font-medium">@categoryLowStock low</span>
+                }
+            </div>
+            @if (!items.Any())
+            {
+                <form method="post" action="/Inventory/DeleteCategory" class="inline"
+                      onsubmit="return confirm('Delete this category?')">
+                    <input type="hidden" name="id" value="@category.Id" />
+                    <input type="hidden" name="type" value="@currentType" />
+                    <button type="submit" class="text-red-400 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                        Delete Category
+                    </button>
+                </form>
+            }
+        </div>
+
+        <!-- Add Item Form -->
+        <details class="mb-4">
+            <summary class="cursor-pointer text-sm @accentColor font-medium hover:underline inline-flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add new item to @category.Name
+            </summary>
+            <div class="bg-white rounded-xl border border-gray-100 p-4 mt-2">
+                <form method="post" action="/Inventory/CreateItem" class="flex flex-wrap gap-3 items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="categoryId" value="@category.Id" />
+                    <input type="hidden" name="type" value="@currentType" />
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="text-xs text-gray-600 block mb-1">Name *</label>
+                        <input type="text" name="name" required placeholder="Item name"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600 block mb-1">Qty</label>
+                        <input type="number" name="quantity" value="0" min="0"
+                               class="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600 block mb-1">Unit</label>
+                        <input type="text" name="unit" value="unit" placeholder="box, bottle..."
+                               class="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600 block mb-1">Min Stock</label>
+                        <input type="number" name="minStock" value="5" min="0"
+                               class="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600 block mb-1">Location</label>
+                        <input type="text" name="location" placeholder="Storage"
+                               class="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600 block mb-1">Cost</label>
+                        <input type="number" name="cost" step="0.01" min="0" placeholder="0.00"
+                               class="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <button type="submit" class="@tabActive px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                        Add Item
+                    </button>
+                </form>
+            </div>
+        </details>
+
+        <!-- Product Card Grid -->
+        @if (items.Any())
+        {
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                @foreach (var item in items)
+                {
+                    var isLow = item.Quantity <= item.MinStock;
+                    var stockColor = isLow ? "text-red-500" : "text-green-600";
+
+                    <div class="group bg-white rounded-xl border border-gray-100 p-4 text-center relative hover:shadow-md hover:-translate-y-0.5 transition-all">
+                        <!-- Action Buttons (hover-only) -->
+                        <div class="absolute top-2 right-2 flex gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                            <!-- Edit toggle -->
+                            <button onclick="var el = document.getElementById('edit-@item.Id'); el.open = !el.open;"
+                                    class="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    title="Edit">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <!-- Delete -->
+                            <form method="post" action="/Inventory/DeleteItem" class="inline"
+                                  onsubmit="return confirm('Delete @item.Name?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="hidden" name="type" value="@currentType" />
+                                <button type="submit"
+                                        class="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                        title="Delete">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Product Name -->
+                        <p class="text-sm font-semibold text-gray-900 mt-2 mb-0.5 leading-tight">@item.Name</p>
+
+                        <!-- Cost -->
+                        @if (item.Cost.HasValue)
+                        {
+                            <p class="text-xs text-gray-400 mb-3">@item.Cost.Value.ToString("C")</p>
+                        }
+                        else
+                        {
+                            <div class="mb-3"></div>
+                        }
+
+                        <!-- Up Arrow - Add Stock -->
+                        <button onclick="var el = document.getElementById('add-@item.Id'); el.open = !el.open;"
+                                class="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center justify-center mx-auto mb-1 text-gray-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" />
+                            </svg>
+                        </button>
+
+                        <!-- Stock Number -->
+                        <p class="text-3xl font-extrabold @stockColor leading-none my-1">@item.Quantity</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">@item.Unit</p>
+
+                        <!-- Down Arrow - Quick Remove 1 -->
+                        @if (item.Quantity > 0)
+                        {
+                            <form method="post" action="/Inventory/RemoveStock" class="inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="itemId" value="@item.Id" />
+                                <input type="hidden" name="quantity" value="1" />
+                                <input type="hidden" name="type" value="@currentType" />
+                                <button type="submit"
+                                        class="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 hover:text-green-600 transition-colors flex items-center justify-center mx-auto mt-1 text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="w-9 h-9 rounded-full border-2 border-gray-100 flex items-center justify-center mx-auto mt-1 text-gray-200 opacity-30 cursor-not-allowed">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        }
+
+                        <!-- Low Stock Warning -->
+                        @if (isLow)
+                        {
+                            <p class="text-xs text-red-500 font-semibold mt-2 flex items-center justify-center gap-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                Low stock (min: @item.MinStock)
+                            </p>
+                        }
+
+                        <!-- Location -->
+                        @if (!string.IsNullOrEmpty(item.Location))
+                        {
+                            <p class="text-[10px] text-gray-400 mt-1 truncate" title="@item.Location">@item.Location</p>
+                        }
+
+                        <!-- Add Stock Dropdown (details element) -->
+                        <details id="add-@item.Id" class="text-left mt-3">
+                            <summary class="hidden"></summary>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
+                                <form method="post" action="/Inventory/AddStock">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="itemId" value="@item.Id" />
+                                    <input type="hidden" name="type" value="@currentType" />
+                                    <div class="space-y-2">
+                                        <input type="number" name="quantity" value="1" min="1" required
+                                               class="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                               placeholder="Qty" />
+                                        <input type="text" name="notes" placeholder="Notes (optional)"
+                                               class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <button type="submit"
+                                                class="w-full bg-blue-600 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-700 transition-colors">
+                                            Add Stock
+                                        </button>
+                                    </div>
+                                </form>
+                                <form method="post" action="/Inventory/AdjustStock">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="itemId" value="@item.Id" />
+                                    <input type="hidden" name="type" value="@currentType" />
+                                    <div class="flex gap-1">
+                                        <input type="number" name="newQuantity" value="@item.Quantity" min="0" required
+                                               class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                               placeholder="Exact count" />
+                                        <input type="hidden" name="notes" value="Physical count adjustment" />
+                                        <button type="submit"
+                                                class="bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-amber-600 transition-colors whitespace-nowrap">
+                                            Set Exact
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+
+                        <!-- Edit Item Dropdown (details element) -->
+                        <details id="edit-@item.Id" class="text-left mt-2">
+                            <summary class="hidden"></summary>
+                            <div class="bg-blue-50/50 rounded-lg p-3 border border-blue-100 space-y-2">
+                                <p class="text-xs font-semibold text-gray-600 mb-1">Edit Item</p>
+                                <form method="post" action="/Inventory/EditItem" class="space-y-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <input type="hidden" name="type" value="@currentType" />
+                                    <input type="text" name="name" value="@item.Name" required placeholder="Name"
+                                           class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <div class="grid grid-cols-2 gap-1">
+                                        <input type="text" name="unit" value="@item.Unit" placeholder="Unit"
+                                               class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input type="number" name="minStock" value="@item.MinStock" min="0" placeholder="Min"
+                                               class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <input type="text" name="location" value="@item.Location" placeholder="Location"
+                                           class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input type="number" name="cost" value="@item.Cost" step="0.01" min="0" placeholder="Cost"
+                                           class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <button type="submit"
+                                            class="w-full bg-blue-600 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-700 transition-colors">
+                                        Save Changes
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="bg-white rounded-xl border border-gray-100 p-8 text-center">
+                <p class="text-sm text-gray-400">No items yet. Add the first item above.</p>
+            </div>
+        }
+    </div>
+}
+
+<!-- Recent Activity -->
+@if (recentTransactions.Any())
+{
+    <details class="mt-8 mb-4">
+        <summary class="cursor-pointer text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Recent Activity (@recentTransactions.Count)
+        </summary>
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-left">
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">Date</th>
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">Item</th>
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">Type</th>
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">Qty</th>
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">Notes</th>
+                            <th class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wider">By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach (var tx in recentTransactions)
+                        {
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
+                                    @tx.CreatedAt.ToString("MMM dd, h:mm tt")
+                                </td>
+                                <td class="px-4 py-2.5 text-sm font-medium text-gray-800">
+                                    @tx.Item.Name
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    @if (tx.Type == "in")
+                                    {
+                                        <span class="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                            </svg>
+                                            IN
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 bg-orange-100 text-orange-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                            </svg>
+                                            OUT
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-4 py-2.5 text-sm font-semibold text-gray-700">
+                                    @(tx.Type == "in" ? "+" : "-")@tx.Quantity
+                                </td>
+                                <td class="px-4 py-2.5 text-xs text-gray-500 max-w-[200px] truncate">
+                                    @(tx.Notes ?? "-")
+                                </td>
+                                <td class="px-4 py-2.5 text-xs text-gray-500">
+                                    @tx.CreatedBy
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </details>
+}

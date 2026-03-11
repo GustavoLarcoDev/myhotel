@@ -1,0 +1,253 @@
+@using MyHotel.Web.Models.Entities
+@model List<Message>
+@{
+    ViewData["Title"] = "Messages";
+    var currentTab = (string)ViewBag.CurrentTab;
+    var unreadCount = (int)ViewBag.UnreadCount;
+    var hotelUsers = (List<ApplicationUser>)ViewBag.HotelUsers;
+    var currentUserId = (string)ViewBag.CurrentUserId;
+}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-gray-900">Messages</h1>
+        @if (unreadCount > 0)
+        {
+            <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">@unreadCount unread</span>
+        }
+    </div>
+</div>
+
+<!-- Send Message Form -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="flex items-center gap-4 mb-4">
+        <h3 class="text-sm font-semibold text-gray-700">New Message</h3>
+        <div class="flex gap-2">
+            <button onclick="toggleMessageType('direct')" id="btn-direct"
+                    class="px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 text-white">
+                Direct Message
+            </button>
+            <button onclick="toggleMessageType('announcement')" id="btn-announcement"
+                    class="px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200">
+                Announcement
+            </button>
+        </div>
+    </div>
+
+    <form method="post" action="/Messaging/Send" id="message-form">
+        @Html.AntiForgeryToken()
+        <!-- Direct Message Fields -->
+        <div id="direct-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="text-xs text-gray-600 block mb-1">Recipient *</label>
+                <select name="toUserId" id="toUserId-select"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Select recipient...</option>
+                    @foreach (var user in hotelUsers)
+                    {
+                        <option value="@user.Id">@user.FullName (@user.Email)</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-gray-600 block mb-1">Subject *</label>
+                <input type="text" name="subject" id="subject-direct" required placeholder="Message subject"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+        </div>
+
+        <!-- Announcement Fields (hidden by default) -->
+        <div id="announcement-fields" class="hidden mb-3">
+            <div>
+                <label class="text-xs text-gray-600 block mb-1">Subject *</label>
+                <input type="text" id="subject-announcement" placeholder="Announcement subject"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+        </div>
+
+        <input type="hidden" name="isAnnouncement" id="isAnnouncement" value="false" />
+
+        <div class="mb-3">
+            <label class="text-xs text-gray-600 block mb-1">Message *</label>
+            <textarea name="body" required rows="3" placeholder="Type your message..."
+                      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"></textarea>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                Send
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Tab Bar -->
+<div class="flex gap-2 mb-6">
+    <a href="/Messaging?tab=inbox"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "inbox" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Inbox
+        @if (unreadCount > 0)
+        {
+            <span class="ml-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full @(currentTab == "inbox" ? "bg-blue-500" : "bg-blue-100 text-blue-700")">@unreadCount</span>
+        }
+    </a>
+    <a href="/Messaging?tab=sent"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "sent" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Sent
+    </a>
+    <a href="/Messaging?tab=announcements"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "announcements" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Announcements
+    </a>
+</div>
+
+<!-- Message List -->
+@if (!Model.Any())
+{
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <p class="text-gray-500 text-sm">
+            @(currentTab == "inbox" ? "No messages in your inbox." :
+              currentTab == "sent" ? "You haven't sent any messages yet." :
+              "No announcements yet.")
+        </p>
+    </div>
+}
+else
+{
+    <div class="space-y-3">
+        @foreach (var msg in Model)
+        {
+            var isUnread = !msg.IsRead && currentTab == "inbox";
+            var bodyPreview = msg.Body.Length > 120 ? msg.Body.Substring(0, 120) + "..." : msg.Body;
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 @(isUnread ? "border-l-4 border-l-blue-500" : "") overflow-hidden">
+                <div class="flex items-start gap-4 p-4">
+                    <!-- Avatar -->
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 @(msg.IsAnnouncement ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700")">
+                        @if (msg.IsAnnouncement)
+                        {
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                            </svg>
+                        }
+                        else
+                        {
+                            @(msg.FromUser?.FirstName?.Substring(0, 1))@(msg.FromUser?.LastName?.Substring(0, 1))
+                        }
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            @if (msg.IsAnnouncement)
+                            {
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Announcement</span>
+                            }
+                            <h4 class="font-semibold text-gray-900 truncate @(isUnread ? "text-blue-900" : "")">@msg.Subject</h4>
+                        </div>
+
+                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                            @if (currentTab == "inbox" || currentTab == "announcements")
+                            {
+                                <span>From: <span class="font-medium text-gray-700">@(msg.FromUser?.FullName ?? "Unknown")</span></span>
+                            }
+                            @if (currentTab == "sent" && !msg.IsAnnouncement)
+                            {
+                                <span>To: <span class="font-medium text-gray-700">@(msg.ToUser?.FullName ?? "Unknown")</span></span>
+                            }
+                            <span class="text-gray-300">|</span>
+                            <span>@msg.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</span>
+                            @if (currentTab == "inbox")
+                            {
+                                @if (msg.IsRead)
+                                {
+                                    <span class="text-green-500 text-xs">Read</span>
+                                }
+                                else
+                                {
+                                    <span class="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">New</span>
+                                }
+                            }
+                        </div>
+
+                        <p class="text-sm text-gray-600 @(isUnread ? "font-medium" : "")">@bodyPreview</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        @if (currentTab == "inbox" && !msg.IsRead)
+                        {
+                            <form method="post" action="/Messaging/MarkAsRead" class="inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@msg.Id" />
+                                <button type="submit" class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                        title="Mark as read">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </form>
+                        }
+                        <form method="post" action="/Messaging/Delete" class="inline"
+                              onsubmit="return confirm('Delete this message?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@msg.Id" />
+                            <button type="submit" class="text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs transition-colors"
+                                    title="Delete">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleMessageType(type) {
+            const directFields = document.getElementById('direct-fields');
+            const announcementFields = document.getElementById('announcement-fields');
+            const isAnnouncementInput = document.getElementById('isAnnouncement');
+            const btnDirect = document.getElementById('btn-direct');
+            const btnAnnouncement = document.getElementById('btn-announcement');
+            const subjectDirect = document.getElementById('subject-direct');
+            const subjectAnnouncement = document.getElementById('subject-announcement');
+            const toUserSelect = document.getElementById('toUserId-select');
+
+            if (type === 'announcement') {
+                directFields.classList.add('hidden');
+                announcementFields.classList.remove('hidden');
+                isAnnouncementInput.value = 'true';
+                btnAnnouncement.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-purple-600 text-white';
+                btnDirect.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200';
+
+                // Swap subject field names
+                subjectDirect.removeAttribute('name');
+                subjectDirect.removeAttribute('required');
+                subjectAnnouncement.setAttribute('name', 'subject');
+                subjectAnnouncement.setAttribute('required', 'required');
+                toUserSelect.removeAttribute('required');
+            } else {
+                directFields.classList.remove('hidden');
+                announcementFields.classList.add('hidden');
+                isAnnouncementInput.value = 'false';
+                btnDirect.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 text-white';
+                btnAnnouncement.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200';
+
+                // Swap subject field names
+                subjectAnnouncement.removeAttribute('name');
+                subjectAnnouncement.removeAttribute('required');
+                subjectDirect.setAttribute('name', 'subject');
+                subjectDirect.setAttribute('required', 'required');
+            }
+        }
+    </script>
+}

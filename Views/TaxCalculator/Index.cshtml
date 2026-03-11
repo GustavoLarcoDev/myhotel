@@ -1,0 +1,196 @@
+@{
+    ViewData["Title"] = "Tax Calculator";
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Tax Calculator</h1>
+    <p class="text-sm text-gray-500 mt-1">Calculate room charges with applicable taxes</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Calculator Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Room Details</h2>
+
+        <div class="space-y-4">
+            <!-- Room Rate -->
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Room Rate ($ per night)</label>
+                <input type="number" id="roomRate" step="0.01" min="0" placeholder="0.00" value="100.00"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                       oninput="calculate()" />
+            </div>
+
+            <!-- Number of Nights -->
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Number of Nights</label>
+                <input type="number" id="numNights" min="1" value="1" placeholder="1"
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                       oninput="calculate()" />
+            </div>
+
+            <!-- Tax Rates Section -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-medium text-gray-500">Tax Rates</label>
+                    <button type="button" onclick="addTaxLine()"
+                            class="text-xs text-blue-600 hover:text-blue-700 font-medium">+ Add Tax</button>
+                </div>
+                <div id="taxLines" class="space-y-2">
+                    <!-- Default tax lines will be added by JS -->
+                </div>
+            </div>
+
+            <!-- Calculate Button -->
+            <button type="button" onclick="calculate()"
+                    class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                Calculate
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Calculation Results</h2>
+
+        <div id="results" class="space-y-0">
+            <div class="text-sm text-gray-400 text-center py-8">Enter room details and click Calculate to see results.</div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    let taxLineId = 0;
+
+    const defaultTaxes = [
+        { name: 'State Tax', rate: 6 },
+        { name: 'County Tax', rate: 1 },
+        { name: 'Tourism Tax', rate: 5 }
+    ];
+
+    function addTaxLine(name = '', rate = '') {
+        taxLineId++;
+        const container = document.getElementById('taxLines');
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.id = 'taxLine-' + taxLineId;
+        div.innerHTML = `
+            <input type="text" placeholder="Tax name" value="${name}"
+                   class="tax-name flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                   oninput="calculate()" />
+            <div class="flex items-center gap-1">
+                <input type="number" step="0.01" min="0" placeholder="0" value="${rate}"
+                       class="tax-rate w-20 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-right"
+                       oninput="calculate()" />
+                <span class="text-sm text-gray-500">%</span>
+            </div>
+            <button type="button" onclick="removeTaxLine(${taxLineId})"
+                    class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+
+    function removeTaxLine(id) {
+        const el = document.getElementById('taxLine-' + id);
+        if (el) {
+            el.remove();
+            calculate();
+        }
+    }
+
+    function calculate() {
+        const roomRate = parseFloat(document.getElementById('roomRate').value) || 0;
+        const numNights = parseInt(document.getElementById('numNights').value) || 0;
+
+        if (roomRate <= 0 || numNights <= 0) {
+            document.getElementById('results').innerHTML = '<div class="text-sm text-gray-400 text-center py-8">Enter valid room rate and number of nights.</div>';
+            return;
+        }
+
+        const subtotal = roomRate * numNights;
+        const taxLines = document.getElementById('taxLines').children;
+        let taxes = [];
+        let totalTax = 0;
+
+        for (let line of taxLines) {
+            const nameInput = line.querySelector('.tax-name');
+            const rateInput = line.querySelector('.tax-rate');
+            const name = nameInput ? nameInput.value || 'Tax' : 'Tax';
+            const rate = rateInput ? parseFloat(rateInput.value) || 0 : 0;
+            const amount = subtotal * (rate / 100);
+            totalTax += amount;
+            taxes.push({ name, rate, amount });
+        }
+
+        const grandTotal = subtotal + totalTax;
+        const totalPerNight = numNights > 0 ? grandTotal / numNights : 0;
+
+        let html = '';
+
+        // Subtotal
+        html += `
+            <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                <div>
+                    <div class="text-sm font-medium text-gray-800">Subtotal</div>
+                    <div class="text-xs text-gray-400">$${roomRate.toFixed(2)} x ${numNights} night${numNights > 1 ? 's' : ''}</div>
+                </div>
+                <div class="text-sm font-medium text-gray-900">$${subtotal.toFixed(2)}</div>
+            </div>
+        `;
+
+        // Tax lines
+        if (taxes.length > 0) {
+            html += '<div class="py-2"><div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Taxes</div>';
+            for (const tax of taxes) {
+                html += `
+                    <div class="flex items-center justify-between py-1.5">
+                        <div class="text-sm text-gray-600">${tax.name} (${tax.rate}%)</div>
+                        <div class="text-sm text-gray-700">$${tax.amount.toFixed(2)}</div>
+                    </div>
+                `;
+            }
+            html += `
+                <div class="flex items-center justify-between py-2 border-t border-gray-100 mt-1">
+                    <div class="text-sm font-medium text-gray-700">Total Tax</div>
+                    <div class="text-sm font-medium text-gray-900">$${totalTax.toFixed(2)}</div>
+                </div>
+            </div>`;
+        }
+
+        // Total per night
+        html += `
+            <div class="flex items-center justify-between py-3 border-t border-gray-200">
+                <div class="text-sm font-medium text-gray-700">Total Per Night</div>
+                <div class="text-sm font-medium text-gray-900">$${totalPerNight.toFixed(2)}</div>
+            </div>
+        `;
+
+        // Grand Total
+        html += `
+            <div class="flex items-center justify-between py-4 bg-blue-50 rounded-lg px-4 mt-2">
+                <div>
+                    <div class="text-lg font-bold text-blue-900">Grand Total</div>
+                    <div class="text-xs text-blue-600">${numNights} night${numNights > 1 ? 's' : ''} including all taxes</div>
+                </div>
+                <div class="text-2xl font-bold text-blue-900">$${grandTotal.toFixed(2)}</div>
+            </div>
+        `;
+
+        document.getElementById('results').innerHTML = html;
+    }
+
+    // Initialize default tax lines
+    document.addEventListener('DOMContentLoaded', function() {
+        for (const tax of defaultTaxes) {
+            addTaxLine(tax.name, tax.rate);
+        }
+        calculate();
+    });
+</script>
+}

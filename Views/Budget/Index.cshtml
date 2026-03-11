@@ -1,0 +1,335 @@
+@{
+    ViewData["Title"] = "Budget & Expenses";
+    var currentPeriod = (string)ViewBag.CurrentPeriod;
+    var currentView = (string)ViewBag.CurrentView;
+    var expenses = (List<Expense>)ViewBag.Expenses;
+    var expensesTotal = (decimal)ViewBag.ExpensesTotal;
+    var expensesByCategory = (Dictionary<string, decimal>)ViewBag.ExpensesByCategory;
+    var budgetItems = (List<BudgetItem>)ViewBag.BudgetItems;
+    var budgetTotal = (decimal)ViewBag.BudgetTotal;
+    var budgetVsActual = (IEnumerable<dynamic>)ViewBag.BudgetVsActual;
+    var vendors = (List<Vendor>)ViewBag.Vendors;
+    var categories = (string[])ViewBag.Categories;
+}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Budget & Expenses</h1>
+        <p class="text-sm text-gray-500 mt-1">Track expenses and manage budgets</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <!-- Period Selector -->
+        <form method="get" asp-action="Index" id="periodForm">
+            <input type="hidden" name="view" value="@currentView" />
+            <input type="month" name="period" value="@currentPeriod" onchange="document.getElementById('periodForm').submit()"
+                   class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white" />
+        </form>
+    </div>
+</div>
+
+<!-- View Tabs -->
+<div class="flex items-center gap-1 mb-6">
+    <a href="@Url.Action("Index", new { period = currentPeriod, view = "expenses" })"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentView == "expenses" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")">
+        Expenses
+    </a>
+    <a href="@Url.Action("Index", new { period = currentPeriod, view = "budget" })"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentView == "budget" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")">
+        Budget
+    </a>
+</div>
+
+@if (currentView == "expenses")
+{
+    <!-- Create Expense Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">New Expense</h2>
+        <form method="post" asp-action="CreateExpense">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="period" value="@currentPeriod" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Description *</label>
+                    <input type="text" name="description" required placeholder="What was the expense for..."
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Amount *</label>
+                    <input type="number" name="amount" required step="0.01" min="0.01" placeholder="0.00"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                    <select name="category" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Vendor</label>
+                    <select name="vendorId" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <option value="">-- None --</option>
+                        @foreach (var v in vendors)
+                        {
+                            <option value="@v.Id">@v.Name</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Date</label>
+                    <input type="date" name="date" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Created By</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="createdBy" placeholder="Your name"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Expenses</div>
+            <div class="text-2xl font-bold text-gray-900 mt-1">$@expensesTotal.ToString("N2")</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Transactions</div>
+            <div class="text-2xl font-bold text-gray-900 mt-1">@expenses.Count</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Budget Planned</div>
+            <div class="text-2xl font-bold text-gray-900 mt-1">$@budgetTotal.ToString("N2")</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Remaining</div>
+            @{
+                var remaining = budgetTotal - expensesTotal;
+            }
+            <div class="text-2xl font-bold @(remaining >= 0 ? "text-green-600" : "text-red-600") mt-1">$@remaining.ToString("N2")</div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    @if (expensesByCategory.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <h2 class="text-sm font-semibold text-gray-700 mb-4">By Category</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                @foreach (var kvp in expensesByCategory.OrderByDescending(x => x.Value))
+                {
+                    var pct = expensesTotal > 0 ? Math.Round((double)(kvp.Value / expensesTotal) * 100, 1) : 0;
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-500">@kvp.Key</div>
+                        <div class="text-lg font-bold text-gray-900">$@kvp.Value.ToString("N2")</div>
+                        <div class="text-xs text-gray-400">@(pct)% of total</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Expenses Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Date</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Description</th>
+                        <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Amount</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Category</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Vendor</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Created By</th>
+                        <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @if (!expenses.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">No expenses for this period.</td>
+                        </tr>
+                    }
+                    @foreach (var expense in expenses)
+                    {
+                        var catColor = expense.Category switch
+                        {
+                            "Maintenance" => "bg-orange-100 text-orange-700",
+                            "Housekeeping" => "bg-purple-100 text-purple-700",
+                            "Front Desk" => "bg-blue-100 text-blue-700",
+                            "Food & Beverage" => "bg-green-100 text-green-700",
+                            "Utilities" => "bg-yellow-100 text-yellow-700",
+                            "Marketing" => "bg-pink-100 text-pink-700",
+                            "Payroll" => "bg-indigo-100 text-indigo-700",
+                            _ => "bg-gray-100 text-gray-700"
+                        };
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-3 text-sm text-gray-600">@expense.Date.ToString("MMM dd")</td>
+                            <td class="px-6 py-3 text-sm text-gray-800">@expense.Description</td>
+                            <td class="px-6 py-3 text-sm text-gray-900 font-medium text-right">$@expense.Amount.ToString("N2")</td>
+                            <td class="px-6 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @catColor">@expense.Category</span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@(expense.Vendor?.Name ?? "-")</td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@expense.CreatedBy</td>
+                            <td class="px-6 py-3 text-center">
+                                <form method="post" asp-action="DeleteExpense" onsubmit="return confirm('Delete this expense?')" class="inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@expense.Id" />
+                                    <input type="hidden" name="period" value="@currentPeriod" />
+                                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Budget View -->
+
+    <!-- Create Budget Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Set Budget</h2>
+        <form method="post" asp-action="CreateBudget">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="period" value="@currentPeriod" />
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Category *</label>
+                    <select name="category" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Planned Amount *</label>
+                    <input type="number" name="plannedAmount" required step="0.01" min="0.01" placeholder="0.00"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Save Budget</button>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">If a budget item already exists for this category and period, it will be updated.</p>
+        </form>
+    </div>
+
+    <!-- Budget vs Actual Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700">Budget vs Actual - @currentPeriod</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Category</th>
+                        <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Planned</th>
+                        <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Actual</th>
+                        <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Variance</th>
+                        <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">% Used</th>
+                        <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @{
+                        decimal totalPlanned = 0;
+                        decimal totalActual = 0;
+                    }
+                    @foreach (var item in budgetVsActual)
+                    {
+                        decimal planned = item.Planned;
+                        decimal actual = item.Actual;
+                        decimal variance = item.Variance;
+                        double percentUsed = item.PercentUsed;
+                        totalPlanned += planned;
+                        totalActual += actual;
+
+                        var budgetItemForCategory = budgetItems.FirstOrDefault(b => b.Category == (string)item.Category);
+
+                        if (planned == 0 && actual == 0) continue;
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-3 text-sm font-medium text-gray-800">@item.Category</td>
+                            <td class="px-6 py-3 text-sm text-gray-600 text-right">$@planned.ToString("N2")</td>
+                            <td class="px-6 py-3 text-sm text-gray-600 text-right">$@actual.ToString("N2")</td>
+                            <td class="px-6 py-3 text-sm font-medium text-right @(variance >= 0 ? "text-green-600" : "text-red-600")">
+                                @(variance >= 0 ? "+" : "")$@variance.ToString("N2")
+                            </td>
+                            <td class="px-6 py-3">
+                                <div class="flex items-center justify-center gap-2">
+                                    <div class="w-24 bg-gray-100 rounded-full h-2">
+                                        <div class="@(percentUsed > 100 ? "bg-red-500" : percentUsed > 80 ? "bg-yellow-500" : "bg-green-500") h-2 rounded-full" style="width: @(Math.Min(percentUsed, 100))%"></div>
+                                    </div>
+                                    <span class="text-xs font-medium @(percentUsed > 100 ? "text-red-600" : "text-gray-600")">@(percentUsed)%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3 text-center">
+                                @if (budgetItemForCategory != null)
+                                {
+                                    <form method="post" asp-action="DeleteBudget" onsubmit="return confirm('Delete this budget item?')" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@budgetItemForCategory.Id" />
+                                        <input type="hidden" name="period" value="@currentPeriod" />
+                                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-gray-200 bg-gray-50">
+                        <td class="px-6 py-3 text-sm font-bold text-gray-900">Total</td>
+                        <td class="px-6 py-3 text-sm font-bold text-gray-900 text-right">$@totalPlanned.ToString("N2")</td>
+                        <td class="px-6 py-3 text-sm font-bold text-gray-900 text-right">$@totalActual.ToString("N2")</td>
+                        @{
+                            var totalVariance = totalPlanned - totalActual;
+                            var totalPctUsed = totalPlanned > 0 ? Math.Round((double)(totalActual / totalPlanned) * 100, 1) : 0;
+                        }
+                        <td class="px-6 py-3 text-sm font-bold text-right @(totalVariance >= 0 ? "text-green-600" : "text-red-600")">
+                            @(totalVariance >= 0 ? "+" : "")$@totalVariance.ToString("N2")
+                        </td>
+                        <td class="px-6 py-3 text-center">
+                            <span class="text-sm font-bold @(totalPctUsed > 100 ? "text-red-600" : "text-gray-900")">@(totalPctUsed)%</span>
+                        </td>
+                        <td class="px-6 py-3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Budget Items List -->
+    @if (budgetItems.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+            <h2 class="text-sm font-semibold text-gray-700 mb-4">Budget Items for @currentPeriod</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                @foreach (var bi in budgetItems)
+                {
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-500">@bi.Category</div>
+                        <div class="text-lg font-bold text-gray-900">$@bi.PlannedAmount.ToString("N2")</div>
+                        <div class="text-xs text-gray-400">Created @bi.CreatedAt.ToString("MMM dd")</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}

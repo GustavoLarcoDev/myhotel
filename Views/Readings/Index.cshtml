@@ -1,0 +1,193 @@
+@{
+    ViewData["Title"] = "Readings & Meters";
+
+    var readings = ViewBag.Readings as List<Reading> ?? new List<Reading>();
+    var allReadings = ViewBag.AllReadings as List<Reading> ?? new List<Reading>();
+    var selectedType = (string)ViewBag.SelectedType;
+    var typeCounts = ViewBag.TypeCounts as Dictionary<string, int> ?? new Dictionary<string, int>();
+    var totalCount = (int)ViewBag.TotalCount;
+
+    var types = new[] {
+        new { Value = "boiler", Label = "Boiler", Unit = "°F", Color = "red" },
+        new { Value = "pool-chlorine", Label = "Pool Chlorine", Unit = "ppm", Color = "teal" },
+        new { Value = "pool-ph", Label = "Pool pH", Unit = "pH", Color = "teal" },
+        new { Value = "water", Label = "Water", Unit = "gallons", Color = "blue" },
+        new { Value = "electric", Label = "Electric", Unit = "kWh", Color = "yellow" },
+        new { Value = "gas", Label = "Gas", Unit = "therms", Color = "orange" }
+    };
+
+    string TypeColor(string t)
+    {
+        if (t.StartsWith("pool")) return "teal";
+        return t switch
+        {
+            "boiler" => "red",
+            "water" => "blue",
+            "electric" => "yellow",
+            "gas" => "orange",
+            _ => "gray"
+        };
+    }
+
+    string TypeLabel(string t) => t switch
+    {
+        "boiler" => "Boiler",
+        "pool-chlorine" => "Pool Chlorine",
+        "pool-ph" => "Pool pH",
+        "water" => "Water",
+        "electric" => "Electric",
+        "gas" => "Gas",
+        _ => t
+    };
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Readings & Meters</h1>
+    <p class="text-sm text-gray-500 mt-1">Record and track utility readings and meter values</p>
+</div>
+
+<!-- Create Form -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+    <h2 class="text-sm font-semibold text-gray-700 mb-3">Record New Reading</h2>
+    <form method="post" action="/Readings/Create" id="readingForm">
+        @Html.AntiForgeryToken()
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Type *</label>
+                <select name="type" id="readingType" required
+                        class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        onchange="updateUnit()">
+                    <option value="">Select type...</option>
+                    @foreach (var t in types)
+                    {
+                        <option value="@t.Value" data-unit="@t.Unit">@t.Label</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Value *</label>
+                <div class="flex">
+                    <input type="number" name="value" required step="0.01" placeholder="0.00"
+                           class="flex-1 px-4 py-2 border border-gray-200 rounded-l-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                    <span id="unitDisplay" class="inline-flex items-center px-3 py-2 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg text-sm text-gray-600 font-medium min-w-[60px]">
+                        --
+                    </span>
+                </div>
+                <input type="hidden" name="unit" id="unitInput" value="" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                <input type="text" name="location" placeholder="e.g., Boiler Room #1"
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Recorded By *</label>
+                <input type="text" name="recordedBy" required placeholder="Your name"
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div class="sm:col-span-2 lg:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <input type="text" name="notes" placeholder="Optional notes..."
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            Record Reading
+        </button>
+    </form>
+</div>
+
+<!-- Type Filter Tabs -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <a href="/Readings?type=all"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(selectedType == "all" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        All <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(selectedType == "all" ? "bg-blue-500" : "bg-gray-100")">@totalCount</span>
+    </a>
+    @foreach (var t in types)
+    {
+        var count = typeCounts.ContainsKey(t.Value) ? typeCounts[t.Value] : 0;
+        <a href="/Readings?type=@t.Value"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(selectedType == t.Value ? $"bg-{t.Color}-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+            @t.Label <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(selectedType == t.Value ? $"bg-{t.Color}-500" : "bg-gray-100")">@count</span>
+        </a>
+    }
+</div>
+
+<!-- Readings Table -->
+@if (readings.Count == 0)
+{
+    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <p class="text-gray-500">No readings recorded yet.</p>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date/Time</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Value</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Recorded By</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-16"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach (var reading in readings)
+                    {
+                        var color = TypeColor(reading.Type);
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                <div class="font-medium text-gray-900">@reading.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</div>
+                                <div class="text-xs text-gray-400">@reading.CreatedAt.ToLocalTime().ToString("h:mm tt")</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full bg-@(color)-100 text-@(color)-700">
+                                    @TypeLabel(reading.Type)
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                                @reading.Value <span class="text-gray-400 font-normal">@reading.Unit</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">@(reading.Location ?? "-")</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">@reading.RecordedBy</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">@(reading.Notes ?? "-")</td>
+                            <td class="px-4 py-3 text-right">
+                                <form method="post" action="/Readings/Delete">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@reading.Id" />
+                                    <button type="submit" onclick="return confirm('Delete this reading?')"
+                                            class="text-gray-300 hover:text-red-500 transition-colors p-1">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+function updateUnit() {
+    var select = document.getElementById('readingType');
+    var option = select.options[select.selectedIndex];
+    var unit = option.getAttribute('data-unit') || '--';
+    document.getElementById('unitDisplay').textContent = unit;
+    document.getElementById('unitInput').value = unit === '--' ? '' : unit;
+}
+</script>
+}

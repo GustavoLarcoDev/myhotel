@@ -1,0 +1,247 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using MyHotel.Web.Models.Entities
+@using MyHotel.Web.Services
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject HotelContextService HotelContext
+@inject ImpersonationService Impersonation
+@inject MyHotel.Web.Data.ApplicationDbContext Db
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MyHotel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        @@media (min-width: 1024px) {
+            .dropdown:hover .dropdown-menu { display: block; }
+        }
+        .dropdown button:focus { outline: none; }
+        .dropdown button { outline: none; border: none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        var currentHotel = await HotelContext.GetCurrentHotel();
+        var userHotels = currentUser != null ? await HotelContext.GetUserHotels(currentUser.Id) : new List<Hotel>();
+        var isAdmin = currentUser != null && await Db.UserHotelRoles.AnyAsync(r => r.UserId == currentUser.Id && r.Role == AppRole.Admin);
+
+        <!-- Impersonation Banner -->
+        @if (Impersonation.IsImpersonating)
+        {
+            <div class="bg-amber-500 text-white text-center py-2 text-sm font-medium">
+                Impersonating user. <a href="/Admin/StopImpersonation" class="underline font-bold ml-2">Stop Impersonation</a>
+            </div>
+        }
+
+        <!-- Top Navbar -->
+        <nav class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex items-center justify-between h-16">
+                    <!-- Logo -->
+                    <a href="/" class="flex items-center gap-2 text-xl font-bold text-blue-600">
+                        <span class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm">H</span>
+                        MyHotel
+                    </a>
+
+                    <!-- Nav Links -->
+                    <div class="hidden lg:flex items-center gap-1">
+                        <!-- General -->
+                        <div class="dropdown relative">
+                            <button class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">General</button>
+                            <div class="dropdown-menu hidden absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <a href="/Dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Dashboard</a>
+                                <a href="/Logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Log Book</a>
+                                <a href="/PassLogs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Pass Logs</a>
+                                <a href="/DailyChecks" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Daily Checks</a>
+                                <a href="/Messaging" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Messages</a>
+                            </div>
+                        </div>
+
+                        <!-- Front Desk -->
+                        <div class="dropdown relative">
+                            <button class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Front Desk</button>
+                            <div class="dropdown-menu hidden absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <a href="/Rooms" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Rooms</a>
+                                <a href="/Complaints" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Complaints</a>
+                                <a href="/LostFound" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Lost & Found</a>
+                                <a href="/TaxCalculator" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Tax Calculator</a>
+                            </div>
+                        </div>
+
+                        <!-- Engineering -->
+                        <div class="dropdown relative">
+                            <button class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Engineering</button>
+                            <div class="dropdown-menu hidden absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <a href="/WorkOrders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Work Orders</a>
+                                <a href="/Maintenance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">PM Schedule</a>
+                                <a href="/Readings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Readings</a>
+                                <a href="/Assets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Assets</a>
+                            </div>
+                        </div>
+
+                        <!-- Management -->
+                        <div class="dropdown relative">
+                            <button class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">Management</button>
+                            <div class="dropdown-menu hidden absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <a href="/Scheduling" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Scheduling</a>
+                                <a href="/Inventory" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Inventory</a>
+                                <a href="/Meetings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Meetings</a>
+                                <a href="/Evaluations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Evaluations</a>
+                                <a href="/Reports" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Reports</a>
+                                <a href="/Budget" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Budget</a>
+                                <a href="/Directory" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Directory</a>
+                            </div>
+                        </div>
+
+                        <!-- Admin (only for admin/GM) -->
+                        @if (isAdmin)
+                        {
+                        <div class="dropdown relative">
+                            <button class="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">Admin</button>
+                            <div class="dropdown-menu hidden absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <a href="/Admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600">Admin Panel</a>
+                                <a href="/Admin/Hotels" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600">Hotels</a>
+                                <a href="/Admin/Users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600">Users</a>
+                                <a href="/Admin/Roles" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600">Roles & Permissions</a>
+                                <a href="/Admin/Departments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600">Departments</a>
+                            </div>
+                        </div>
+                        }
+                    </div>
+
+                    <!-- Right Side -->
+                    <div class="flex items-center gap-3">
+                        @if (currentHotel != null)
+                        {
+                            <!-- Hotel Switcher -->
+                            @if (userHotels.Count > 1)
+                            {
+                                <div class="dropdown relative">
+                                    <button class="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors focus:outline-none focus:ring-0">
+                                        <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                                        @currentHotel.Name
+                                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                        @foreach (var h in userHotels)
+                                        {
+                                            <a href="/Dashboard/SwitchHotel?hotelId=@h.Id" class="block px-4 py-2 text-sm @(h.Id == currentHotel.Id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50")">
+                                                @h.Name
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium">@currentHotel.Name</span>
+                            }
+                        }
+
+                        <!-- User Menu -->
+                        <div class="dropdown relative">
+                            <button class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900">
+                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                                    @(currentUser?.FirstName?.Length > 0 ? currentUser.FirstName.Substring(0, 1) : "?")@(currentUser?.LastName?.Length > 0 ? currentUser.LastName.Substring(0, 1) : "")
+                                </div>
+                                <span class="hidden sm:block font-medium">@currentUser?.FullName</span>
+                            </button>
+                            <div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <div class="px-4 py-2 text-xs text-gray-400 border-b border-gray-100">@currentUser?.Email</div>
+                                <a href="/Account/Logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Menu Toggle -->
+                        <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="lg:hidden p-2 text-gray-600 hover:text-gray-900">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
+                <a href="/Dashboard" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Dashboard</a>
+                <a href="/Logs" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Log Book</a>
+                <a href="/PassLogs" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Pass Logs</a>
+                <a href="/DailyChecks" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Daily Checks</a>
+                <a href="/Rooms" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Rooms</a>
+                <a href="/WorkOrders" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Work Orders</a>
+                <a href="/Complaints" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Complaints</a>
+                <a href="/LostFound" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Lost & Found</a>
+                <a href="/Maintenance" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">PM Schedule</a>
+                <a href="/Readings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Readings</a>
+                <a href="/Assets" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Assets</a>
+                <a href="/Scheduling" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Scheduling</a>
+                <a href="/Inventory" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Inventory</a>
+                <a href="/Meetings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Meetings</a>
+                <a href="/Evaluations" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Evaluations</a>
+                <a href="/Messaging" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Messages</a>
+                <a href="/Reports" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Reports</a>
+                <a href="/Budget" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Budget</a>
+                <a href="/Directory" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Directory</a>
+                <a href="/TaxCalculator" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Tax Calculator</a>
+                @if (isAdmin)
+                {
+                <a href="/Admin" class="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Admin Panel</a>
+                <a href="/Admin/Hotels" class="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Hotels</a>
+                <a href="/Admin/Users" class="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Users</a>
+                <a href="/Admin/Roles" class="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Roles & Permissions</a>
+                <a href="/Admin/Departments" class="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Departments</a>
+                }
+            </div>
+        </nav>
+    }
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        @if (TempData["Success"] != null)
+        {
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 text-sm">
+                @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+                @TempData["Error"]
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.dropdown > button').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var menu = btn.nextElementSibling;
+                    if (!menu || !menu.classList.contains('dropdown-menu')) return;
+                    var isOpen = !menu.classList.contains('hidden');
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown-menu').forEach(function (m) {
+                        m.classList.add('hidden');
+                    });
+                    // Toggle the clicked one
+                    if (!isOpen) {
+                        menu.classList.remove('hidden');
+                    }
+                });
+            });
+            // Close all dropdowns when clicking outside
+            document.addEventListener('click', function () {
+                document.querySelectorAll('.dropdown-menu').forEach(function (m) {
+                    m.classList.add('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

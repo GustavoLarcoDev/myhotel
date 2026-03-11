@@ -1,0 +1,322 @@
+@{
+    ViewData["Title"] = "Directory";
+    var currentTab = (string)ViewBag.CurrentTab;
+    var currentSearch = (string)ViewBag.CurrentSearch ?? "";
+    var currentDepartmentId = (int?)ViewBag.CurrentDepartmentId;
+    var departments = (List<Department>)ViewBag.Departments;
+    var staffList = (IEnumerable<dynamic>)ViewBag.StaffList;
+    var vendors = (List<Vendor>)ViewBag.Vendors;
+}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Directory</h1>
+        <p class="text-sm text-gray-500 mt-1">Staff members and vendor contacts</p>
+    </div>
+</div>
+
+<!-- Tab Toggle -->
+<div class="flex items-center gap-1 mb-6">
+    <a href="@Url.Action("Index", new { tab = "staff" })"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "staff" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")">
+        Staff
+    </a>
+    <a href="@Url.Action("Index", new { tab = "vendors" })"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "vendors" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")">
+        Vendors
+    </a>
+</div>
+
+@if (currentTab == "staff")
+{
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <!-- Department Filter -->
+            <form method="get" asp-action="Index" id="deptFilter" class="flex items-center gap-2">
+                <input type="hidden" name="tab" value="staff" />
+                <label class="text-xs font-medium text-gray-500">Department:</label>
+                <select name="departmentId" onchange="document.getElementById('deptFilter').submit()"
+                        class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    <option value="">All Departments</option>
+                    @foreach (var dept in departments)
+                    {
+                        if (currentDepartmentId == dept.Id)
+                        {
+                            <option value="@dept.Id" selected="selected">@dept.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@dept.Id">@dept.Name</option>
+                        }
+                    }
+                </select>
+            </form>
+
+            <!-- Search -->
+            <form method="get" asp-action="Index" class="flex-1 sm:flex-none sm:ml-auto">
+                <input type="hidden" name="tab" value="staff" />
+                @if (currentDepartmentId.HasValue)
+                {
+                    <input type="hidden" name="departmentId" value="@currentDepartmentId" />
+                }
+                <input type="text" name="search" value="@currentSearch" placeholder="Search staff..."
+                       class="w-full sm:w-56 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+            </form>
+        </div>
+    </div>
+
+    <!-- Staff Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Name</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Email</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Phone</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Role</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Department</th>
+                        <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @{
+                        var staffCount = 0;
+                    }
+                    @foreach (var staff in staffList)
+                    {
+                        staffCount++;
+                        ApplicationUser user = staff.User;
+                        AppRole role = staff.Role;
+                        List<Department> depts = staff.Departments;
+
+                        var roleLabel = role switch
+                        {
+                            AppRole.Admin => "Admin",
+                            AppRole.GeneralManager => "General Manager",
+                            AppRole.AssistantGM => "Assistant GM",
+                            AppRole.DepartmentManager => "Dept. Manager",
+                            AppRole.Employee => "Employee",
+                            _ => "Unknown"
+                        };
+
+                        var roleColor = role switch
+                        {
+                            AppRole.Admin => "bg-red-100 text-red-700",
+                            AppRole.GeneralManager => "bg-purple-100 text-purple-700",
+                            AppRole.AssistantGM => "bg-indigo-100 text-indigo-700",
+                            AppRole.DepartmentManager => "bg-blue-100 text-blue-700",
+                            AppRole.Employee => "bg-gray-100 text-gray-700",
+                            _ => "bg-gray-100 text-gray-700"
+                        };
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                                        @(user.FirstName.Length > 0 ? user.FirstName.Substring(0, 1) : "")@(user.LastName.Length > 0 ? user.LastName.Substring(0, 1) : "")
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-800">@user.FullName</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@(user.Email ?? "-")</td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@(user.Phone ?? "-")</td>
+                            <td class="px-6 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @roleColor">@roleLabel</span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-gray-600">
+                                @if (depts.Any())
+                                {
+                                    @string.Join(", ", depts.Select(d => d.Name))
+                                }
+                                else
+                                {
+                                    <span class="text-gray-400">-</span>
+                                }
+                            </td>
+                            <td class="px-6 py-3 text-center">
+                                @if (user.IsActive)
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactive</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (staffCount == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">No staff members found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Vendors Tab -->
+
+    <!-- Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <form method="get" asp-action="Index">
+            <input type="hidden" name="tab" value="vendors" />
+            <input type="text" name="search" value="@currentSearch" placeholder="Search vendors by name, service, or email..."
+                   class="w-full sm:w-72 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+        </form>
+    </div>
+
+    <!-- Create Vendor Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Add Vendor</h2>
+        <form method="post" asp-action="CreateVendor">
+            @Html.AntiForgeryToken()
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                    <input type="text" name="name" required placeholder="Vendor name"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Service</label>
+                    <input type="text" name="service" placeholder="e.g. HVAC, Plumbing"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                    <input type="text" name="phone" placeholder="Phone number"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                    <input type="email" name="email" placeholder="email@example.com"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                    <input type="text" name="notes" placeholder="Additional notes"
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">Add Vendor</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vendor Cards -->
+    @if (!vendors.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <p class="text-gray-400 text-sm">No vendors found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var vendor in vendors)
+            {
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5" id="vendor-@vendor.Id">
+                    <!-- Display Mode -->
+                    <div class="vendor-display" data-vendor-id="@vendor.Id">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900">@vendor.Name</h3>
+                                @if (!string.IsNullOrWhiteSpace(vendor.Service))
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 mt-1">@vendor.Service</span>
+                                }
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="toggleEdit(@vendor.Id)" class="px-2 py-1 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">Edit</button>
+                                <form method="post" asp-action="DeleteVendor" onsubmit="return confirm('Delete this vendor?')" class="inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@vendor.Id" />
+                                    <button type="submit" class="px-2 py-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            @if (!string.IsNullOrWhiteSpace(vendor.Phone))
+                            {
+                                <div class="flex items-center gap-2 text-sm text-gray-600">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    @vendor.Phone
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(vendor.Email))
+                            {
+                                <div class="flex items-center gap-2 text-sm text-gray-600">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    @vendor.Email
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(vendor.Notes))
+                            {
+                                <div class="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-500">@vendor.Notes</div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode (hidden by default) -->
+                    <div class="vendor-edit hidden" data-vendor-id="@vendor.Id">
+                        <form method="post" asp-action="EditVendor">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@vendor.Id" />
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Name *</label>
+                                    <input type="text" name="name" value="@vendor.Name" required
+                                           class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Service</label>
+                                    <input type="text" name="service" value="@vendor.Service"
+                                           class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                                    <input type="text" name="phone" value="@vendor.Phone"
+                                           class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                    <input type="email" name="email" value="@vendor.Email"
+                                           class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                                    <input type="text" name="notes" value="@vendor.Notes"
+                                           class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="submit" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">Save</button>
+                                    <button type="button" onclick="toggleEdit(@vendor.Id)" class="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors">Cancel</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@section Scripts {
+<script>
+    function toggleEdit(vendorId) {
+        const display = document.querySelector(`.vendor-display[data-vendor-id="${vendorId}"]`);
+        const edit = document.querySelector(`.vendor-edit[data-vendor-id="${vendorId}"]`);
+        if (display && edit) {
+            display.classList.toggle('hidden');
+            edit.classList.toggle('hidden');
+        }
+    }
+</script>
+}

@@ -1,0 +1,341 @@
+@{
+    ViewData["Title"] = "Evaluations";
+
+    var tab = (string)ViewBag.Tab;
+    var employees = ViewBag.Employees as List<ApplicationUser> ?? new List<ApplicationUser>();
+    var userDepartments = ViewBag.UserDepartments as List<UserDepartment> ?? new List<UserDepartment>();
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Evaluations</h1>
+    <p class="text-sm text-gray-500 mt-1">Employee performance evaluations and housekeeping ratings</p>
+</div>
+
+<!-- Tab Bar -->
+<div class="flex border-b border-gray-200 mb-6">
+    <a href="/Evaluations?tab=evaluations"
+       class="px-6 py-3 text-sm font-medium border-b-2 transition-colors @(tab == "evaluations" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")">
+        Employee Evaluations
+    </a>
+    <a href="/Evaluations?tab=hkratings"
+       class="px-6 py-3 text-sm font-medium border-b-2 transition-colors @(tab == "hkratings" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")">
+        HK Star Ratings
+    </a>
+</div>
+
+@if (tab == "evaluations")
+{
+    var evaluations = ViewBag.Evaluations as List<Evaluation> ?? new List<Evaluation>();
+    var evalsByEmployee = ViewBag.EvalsByEmployee as dynamic ?? new List<dynamic>();
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Create Evaluation Form -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm sticky top-24">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-900">New Evaluation</h2>
+                </div>
+                <form method="post" action="/Evaluations/CreateEvaluation" class="p-4 space-y-3">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Employee *</label>
+                        <select name="employeeId" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select employee...</option>
+                            @foreach (var emp in employees)
+                            {
+                                <option value="@emp.Id">@emp.FullName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Rating *</label>
+                        <div class="flex gap-1">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="rating" value="@i" class="sr-only peer" @(i == 3 ? "checked" : "") />
+                                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg border-2 border-gray-200 peer-checked:border-amber-400 peer-checked:bg-amber-50 text-lg transition-colors hover:border-amber-300">
+                                        @i
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Period</label>
+                        <input type="text" name="period" placeholder="e.g., Q1 2026, March 2026..."
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Comments</label>
+                        <textarea name="comments" rows="3" placeholder="Evaluation comments..."
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        Submit Evaluation
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Evaluations List -->
+        <div class="lg:col-span-2 space-y-4">
+            @if (((IEnumerable<dynamic>)evalsByEmployee).Count() == 0)
+            {
+                <div class="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-gray-500">No evaluations recorded yet.</p>
+                </div>
+            }
+
+            @foreach (var group in (IEnumerable<dynamic>)evalsByEmployee)
+            {
+                var empDept = userDepartments
+                    .Where(ud => ud.UserId == (string)group.EmployeeId)
+                    .Select(ud => ud.Department.Name)
+                    .FirstOrDefault();
+
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm" x-data="{ expanded: false }">
+                    <!-- Employee Summary Card -->
+                    <button @@click="expanded = !expanded" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
+                                @(((string)group.Employee.FirstName)[0])@(((string)group.Employee.LastName)[0])
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-gray-900">@group.Employee.FullName</div>
+                                @if (empDept != null)
+                                {
+                                    <div class="text-xs text-gray-500">@empDept</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="flex items-center gap-0.5">
+                                    @{
+                                        double avgRating = (double)group.AvgRating;
+                                        int fullStars = (int)Math.Floor(avgRating);
+                                    }
+                                    @for (int s = 1; s <= 5; s++)
+                                    {
+                                        <span class="text-sm @(s <= fullStars ? "text-amber-400" : "text-gray-300")">&#9733;</span>
+                                    }
+                                    <span class="text-sm font-medium text-gray-700 ml-1">@avgRating.ToString("F1")</span>
+                                </div>
+                                <div class="text-xs text-gray-400">@group.Count evaluation@((int)group.Count != 1 ? "s" : "")</div>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                    </button>
+
+                    <!-- Expanded Evaluation Details -->
+                    <div x-show="expanded" class="border-t border-gray-100">
+                        @foreach (var eval in (IEnumerable<Evaluation>)group.Evaluations)
+                        {
+                            <div class="px-5 py-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 text-sm">
+                                            <div class="flex items-center gap-0.5">
+                                                @for (int s = 1; s <= 5; s++)
+                                                {
+                                                    <span class="text-sm @(s <= eval.Rating ? "text-amber-400" : "text-gray-300")">&#9733;</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(eval.Period))
+                                            {
+                                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">@eval.Period</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(eval.Comments))
+                                        {
+                                            <p class="text-sm text-gray-600 mt-1">@eval.Comments</p>
+                                        }
+                                        <div class="text-xs text-gray-400 mt-1">
+                                            By @eval.Evaluator.FullName on @eval.CreatedAt.ToString("MMM d, yyyy")
+                                        </div>
+                                    </div>
+                                    <form method="post" action="/Evaluations/Delete">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@eval.Id" />
+                                        <button type="submit" onclick="return confirm('Delete this evaluation?')"
+                                            class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <!-- HK Ratings Tab -->
+    var hkRatings = ViewBag.HkRatings as List<HousekeepingRating> ?? new List<HousekeepingRating>();
+    var ratingsByHousekeeper = ViewBag.RatingsByHousekeeper as dynamic ?? new List<dynamic>();
+    var housekeepers = ViewBag.Housekeepers as List<ApplicationUser> ?? new List<ApplicationUser>();
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Create HK Rating Form -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm sticky top-24">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-900">Rate Housekeeper</h2>
+                </div>
+                <form method="post" action="/Evaluations/CreateHkRating" class="p-4 space-y-3" x-data="{ stars: 0 }">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Housekeeper *</label>
+                        <select name="housekeeperId" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select housekeeper...</option>
+                            @foreach (var hk in housekeepers)
+                            {
+                                <option value="@hk.Id">@hk.FullName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Stars *</label>
+                        <input type="hidden" name="stars" :value="stars" />
+                        <div class="flex gap-1">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <button type="button" @@click="stars = @i"
+                                    class="text-2xl transition-colors focus:outline-none"
+                                    :class="@i <= stars ? 'text-amber-400' : 'text-gray-300 hover:text-amber-200'">
+                                    &#9733;
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Room</label>
+                        <input type="text" name="room" placeholder="Room number..."
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Comments</label>
+                        <textarea name="comments" rows="2" placeholder="Optional comments..."
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Date *</label>
+                        <input type="date" name="date" required value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        Submit Rating
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- HK Ratings List -->
+        <div class="lg:col-span-2 space-y-4">
+            @if (((IEnumerable<dynamic>)ratingsByHousekeeper).Count() == 0)
+            {
+                <div class="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                    <p class="text-gray-500">No housekeeping ratings recorded yet.</p>
+                </div>
+            }
+
+            @foreach (var group in (IEnumerable<dynamic>)ratingsByHousekeeper)
+            {
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm" x-data="{ expanded: false }">
+                    <!-- Housekeeper Summary -->
+                    <button @@click="expanded = !expanded" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-bold">
+                                @(((string)group.Housekeeper.FirstName)[0])@(((string)group.Housekeeper.LastName)[0])
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-gray-900">@group.Housekeeper.FullName</div>
+                                <div class="text-xs text-gray-500">@group.Count total rating@((int)group.Count != 1 ? "s" : "")</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="flex items-center gap-0.5">
+                                    @{
+                                        double avgStars = (double)group.AvgStars;
+                                        int fullHkStars = (int)Math.Floor(avgStars);
+                                    }
+                                    @for (int s = 1; s <= 5; s++)
+                                    {
+                                        <span class="text-sm @(s <= fullHkStars ? "text-amber-400" : "text-gray-300")">&#9733;</span>
+                                    }
+                                    <span class="text-sm font-medium text-gray-700 ml-1">@avgStars.ToString("F1")</span>
+                                </div>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                    </button>
+
+                    <!-- Expanded Ratings -->
+                    <div x-show="expanded" class="border-t border-gray-100">
+                        @foreach (var rating in (IEnumerable<HousekeepingRating>)group.Ratings)
+                        {
+                            <div class="px-5 py-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-3 text-sm">
+                                            <div class="flex items-center gap-0.5">
+                                                @for (int s = 1; s <= 5; s++)
+                                                {
+                                                    <span class="text-sm @(s <= rating.Stars ? "text-amber-400" : "text-gray-300")">&#9733;</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(rating.Room))
+                                            {
+                                                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">Room @rating.Room</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(rating.Comments))
+                                        {
+                                            <p class="text-sm text-gray-600 mt-1">@rating.Comments</p>
+                                        }
+                                        <div class="text-xs text-gray-400 mt-1">
+                                            Rated by @rating.RatedBy.FullName on @rating.Date.ToString("MMM d, yyyy")
+                                        </div>
+                                    </div>
+                                    <form method="post" action="/Evaluations/DeleteHkRating">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@rating.Id" />
+                                        <button type="submit" onclick="return confirm('Delete this rating?')"
+                                            class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+}

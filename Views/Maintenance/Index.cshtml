@@ -1,0 +1,202 @@
+@{
+    ViewData["Title"] = "Preventive Maintenance";
+
+    var items = ViewBag.Items as List<PreventiveMaintenance> ?? new List<PreventiveMaintenance>();
+    var status = (string)ViewBag.Status;
+    var today = (DateTime)ViewBag.Today;
+    var totalCount = (int)ViewBag.TotalCount;
+    var scheduledCount = (int)ViewBag.ScheduledCount;
+    var inProgressCount = (int)ViewBag.InProgressCount;
+    var completedCount = (int)ViewBag.CompletedCount;
+    var overdueCount = (int)ViewBag.OverdueCount;
+
+    var frequencies = new[] { "daily", "weekly", "monthly", "quarterly", "yearly" };
+
+    string StatusBg(string s) => s switch
+    {
+        "scheduled" => "bg-blue-100 text-blue-700",
+        "in-progress" => "bg-yellow-100 text-yellow-700",
+        "completed" => "bg-green-100 text-green-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    string FrequencyBg(string f) => f switch
+    {
+        "daily" => "bg-purple-100 text-purple-700",
+        "weekly" => "bg-indigo-100 text-indigo-700",
+        "monthly" => "bg-cyan-100 text-cyan-700",
+        "quarterly" => "bg-teal-100 text-teal-700",
+        "yearly" => "bg-emerald-100 text-emerald-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    bool IsOverdue(PreventiveMaintenance p) => p.NextDue < today && p.Status != "completed";
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Preventive Maintenance</h1>
+    <p class="text-sm text-gray-500 mt-1">Schedule and track recurring maintenance tasks</p>
+</div>
+
+<!-- Create Form -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+    <h2 class="text-sm font-semibold text-gray-700 mb-3">Add New PM Task</h2>
+    <form method="post" action="/Maintenance/Create">
+        @Html.AntiForgeryToken()
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Title *</label>
+                <input type="text" name="title" required placeholder="e.g., HVAC Filter Change"
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+                <select name="frequency" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    @foreach (var f in frequencies)
+                    {
+                        <option value="@f">@(char.ToUpper(f[0]) + f.Substring(1))</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                <input type="text" name="assignedTo" placeholder="Person or team"
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                <textarea name="description" rows="2" placeholder="Detailed description of the task..."
+                          class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Next Due Date *</label>
+                <input type="date" name="nextDue" required value="@today.ToString("yyyy-MM-dd")"
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            Create PM Task
+        </button>
+    </form>
+</div>
+
+<!-- Status Filter Tabs -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <a href="/Maintenance?status=all"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(status == "all" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        All <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(status == "all" ? "bg-blue-500" : "bg-gray-100")">@totalCount</span>
+    </a>
+    <a href="/Maintenance?status=scheduled"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(status == "scheduled" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Scheduled <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(status == "scheduled" ? "bg-blue-500" : "bg-gray-100")">@scheduledCount</span>
+    </a>
+    <a href="/Maintenance?status=in-progress"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(status == "in-progress" ? "bg-yellow-500 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        In Progress <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(status == "in-progress" ? "bg-yellow-400" : "bg-gray-100")">@inProgressCount</span>
+    </a>
+    <a href="/Maintenance?status=completed"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(status == "completed" ? "bg-green-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Completed <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(status == "completed" ? "bg-green-500" : "bg-gray-100")">@completedCount</span>
+    </a>
+    <a href="/Maintenance?status=overdue"
+       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(status == "overdue" ? "bg-red-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200")">
+        Overdue <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs @(status == "overdue" ? "bg-red-500" : "bg-gray-100")">@overdueCount</span>
+    </a>
+</div>
+
+<!-- PM Cards -->
+@if (items.Count == 0)
+{
+    <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <p class="text-gray-500">No maintenance items found.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @foreach (var item in items)
+        {
+            var overdue = IsOverdue(item);
+            var displayStatus = overdue ? "overdue" : item.Status;
+            var statusClass = overdue ? "bg-red-100 text-red-700" : StatusBg(item.Status);
+
+            <div class="bg-white rounded-xl border @(overdue ? "border-red-300" : "border-gray-200") p-5 hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-gray-900 truncate">@item.Title</h3>
+                        @if (!string.IsNullOrEmpty(item.Description))
+                        {
+                            <p class="text-sm text-gray-500 mt-1 line-clamp-2">@item.Description</p>
+                        }
+                    </div>
+                    <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full @statusClass capitalize ml-2 whitespace-nowrap">
+                        @displayStatus.Replace("-", " ")
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full @FrequencyBg(item.Frequency) capitalize">
+                        @item.Frequency
+                    </span>
+                    @if (!string.IsNullOrEmpty(item.AssignedTo))
+                    {
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-500">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            @item.AssignedTo
+                        </span>
+                    }
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-4">
+                    @if (item.LastCompleted.HasValue)
+                    {
+                        <div>
+                            <span class="text-gray-400">Last completed:</span><br />
+                            <span class="font-medium text-gray-700">@item.LastCompleted.Value.ToString("MMM d, yyyy")</span>
+                        </div>
+                    }
+                    <div>
+                        <span class="text-gray-400">Next due:</span><br />
+                        <span class="font-medium @(overdue ? "text-red-600" : "text-gray-700")">
+                            @item.NextDue.ToString("MMM d, yyyy")
+                            @if (overdue)
+                            {
+                                <span class="text-red-500 font-semibold ml-1">(OVERDUE)</span>
+                            }
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 border-t border-gray-100 pt-3">
+                    @if (item.Status != "completed")
+                    {
+                        <form method="post" action="/Maintenance/Complete">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
+                                Mark Complete
+                            </button>
+                        </form>
+                    }
+                    <form method="post" action="/Maintenance/Delete" class="ml-auto">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" onclick="return confirm('Delete this PM task?')"
+                                class="text-gray-400 hover:text-red-500 transition-colors p-1.5">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}
