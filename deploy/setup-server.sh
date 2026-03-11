@@ -4,16 +4,25 @@
 # para MyHotel (ASP.NET Core 9 + SQLite)
 #
 # Ejecutar UNA SOLA VEZ en el servidor como root
-# Usage: sudo bash setup-server.sh TU_DOMINIO
+# Usage: sudo bash setup-server.sh TU_IP_O_DOMINIO
 # ═══════════════════════════════════════════════════════════
 
 set -euo pipefail
 
-DOMAIN="${1:?Uso: sudo bash setup-server.sh midominio.com}"
+HOST="${1:?Uso: sudo bash setup-server.sh TU_IP_O_DOMINIO}"
+
+# Detectar si es IP o dominio
+if [[ "$HOST" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    IS_IP=true
+    SERVER_NAME="$HOST"
+else
+    IS_IP=false
+    SERVER_NAME="$HOST www.$HOST"
+fi
 
 echo "══════════════════════════════════════════"
 echo " Configurando servidor para MyHotel"
-echo " Dominio: $DOMAIN"
+echo " Host: $HOST"
 echo "══════════════════════════════════════════"
 
 # ─── 1. Actualizar sistema ───
@@ -202,7 +211,7 @@ systemctl enable myhotel
 cat > /etc/nginx/sites-available/myhotel << NGINX
 server {
     listen 80;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name $SERVER_NAME;
 
     location / {
         proxy_pass http://localhost:5000;
@@ -224,8 +233,10 @@ ln -sf /etc/nginx/sites-available/myhotel /etc/nginx/sites-enabled/myhotel
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
 
-# Instalar certbot para HTTPS
-apt-get install -y certbot python3-certbot-nginx
+# Instalar certbot para HTTPS (solo si es dominio)
+if [ "$IS_IP" = false ]; then
+    apt-get install -y certbot python3-certbot-nginx
+fi
 
 echo ""
 echo "══════════════════════════════════════════"
@@ -233,10 +244,13 @@ echo " SETUP COMPLETO"
 echo "══════════════════════════════════════════"
 echo ""
 echo " Siguiente paso: hacer primer deploy"
-echo " desde GitHub (git push main) y luego:"
+echo " desde GitHub (git push main)"
 echo ""
-echo "   sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN"
-echo ""
-echo " para activar HTTPS gratis."
+if [ "$IS_IP" = false ]; then
+    echo " Luego activar HTTPS:"
+    echo "   sudo certbot --nginx -d $HOST -d www.$HOST"
+    echo ""
+fi
+echo " Tu app estará en: http://$HOST"
 echo ""
 echo "══════════════════════════════════════════"
