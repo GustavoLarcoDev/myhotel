@@ -349,7 +349,7 @@ public class ManagementController : Controller
         if (user == null) return NotFound();
 
         // Verify user belongs to one of GM's hotels
-        if (!user.HotelRoles.Any(r => myHotelIds.Contains(r.HotelId)))
+        if (!user.HotelRoles.Any(r => r.HotelId.HasValue && myHotelIds.Contains(r.HotelId.Value)))
         {
             TempData["Error"] = "You don't have access to this user.";
             return RedirectToAction("Users");
@@ -383,7 +383,7 @@ public class ManagementController : Controller
         if (user == null) return NotFound();
 
         // Verify user belongs to one of GM's hotels
-        if (!user.HotelRoles.Any(r => myHotelIds.Contains(r.HotelId)))
+        if (!user.HotelRoles.Any(r => r.HotelId.HasValue && myHotelIds.Contains(r.HotelId.Value)))
         {
             TempData["Error"] = "You don't have access to this user.";
             return RedirectToAction("Users");

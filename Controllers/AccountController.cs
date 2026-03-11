@@ -62,16 +62,30 @@ public class AccountController : Controller
         var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
-            // Auto-select first hotel
+            // Check if user is admin
+            var isAdmin = await _db.UserHotelRoles
+                .AnyAsync(r => r.UserId == user.Id && r.Role == AppRole.Admin);
+
+            if (isAdmin)
+                return RedirectToAction("Index", "Admin");
+
+            // Auto-select first hotel for non-admin users
             var firstHotelRole = await _db.UserHotelRoles
                 .Include(r => r.Hotel)
-                .Where(r => r.UserId == user.Id)
+                .Where(r => r.UserId == user.Id && r.HotelId != null)
                 .FirstOrDefaultAsync();
 
             if (firstHotelRole != null)
             {
-                await _hotelContext.SetCurrentHotel(firstHotelRole.HotelId);
+                await _hotelContext.SetCurrentHotel(firstHotelRole.HotelId!.Value);
             }
+
+            // GM with no hotels yet goes to Management
+            var isGM = await _db.UserHotelRoles
+                .AnyAsync(r => r.UserId == user.Id && r.Role == AppRole.GeneralManager);
+
+            if (isGM && firstHotelRole == null)
+                return RedirectToAction("Index", "Management");
 
             return RedirectToAction("Index", "Dashboard");
         }

@@ -37,12 +37,12 @@ public class DashboardController : Controller
         if (hotelId == null)
         {
             var firstRole = await _db.UserHotelRoles
-                .Where(r => r.UserId == user.Id)
+                .Where(r => r.UserId == user.Id && r.HotelId != null)
                 .FirstOrDefaultAsync();
 
             if (firstRole != null)
             {
-                await _hotelContext.SetCurrentHotel(firstRole.HotelId);
+                await _hotelContext.SetCurrentHotel(firstRole.HotelId!.Value);
                 hotelId = firstRole.HotelId;
             }
         }

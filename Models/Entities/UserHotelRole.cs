@@ -13,10 +13,10 @@ public class UserHotelRole
 {
     public int Id { get; set; }
     public string UserId { get; set; } = "";
-    public int HotelId { get; set; }
+    public int? HotelId { get; set; }
     public AppRole Role { get; set; }
 
     // Navigation
     public ApplicationUser User { get; set; } = null!;
-    public Hotel Hotel { get; set; } = null!;
+    public Hotel? Hotel { get; set; }
 }

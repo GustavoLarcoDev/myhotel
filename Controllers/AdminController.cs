@@ -58,7 +58,6 @@ public class AdminController : Controller
 
         ViewBag.TotalGMs = gmUsers.Count;
         ViewBag.ActiveGMs = gmUsers.Count(u => u.IsActive);
-        ViewBag.TotalHotels = await _db.Hotels.CountAsync();
 
         return View(gmUsers);
     }
@@ -88,27 +87,6 @@ public class AdminController : Controller
             return View(model);
         }
 
-        // Create the hotel first
-        var hotel = new Hotel
-        {
-            Name = model.HotelName,
-            Address = model.HotelAddress,
-            City = model.HotelCity,
-            State = model.HotelState,
-            Phone = model.HotelPhone
-        };
-
-        _db.Hotels.Add(hotel);
-        await _db.SaveChangesAsync();
-
-        // Create default departments
-        var defaultDepartments = new[] { "Front Desk", "Housekeeping", "Maintenance", "Security", "Food & Beverage" };
-        foreach (var dept in defaultDepartments)
-        {
-            _db.Departments.Add(new Department { Name = dept, HotelId = hotel.Id });
-        }
-        await _db.SaveChangesAsync();
-
         // Create the GM user
         var gmUser = new ApplicationUser
         {
@@ -123,26 +101,22 @@ public class AdminController : Controller
         var result = await _userManager.CreateAsync(gmUser, model.Password);
         if (!result.Succeeded)
         {
-            // Clean up the hotel we just created
-            _db.Hotels.Remove(hotel);
-            await _db.SaveChangesAsync();
-
             foreach (var error in result.Errors)
                 ModelState.AddModelError("", error.Description);
 
             return View(model);
         }
 
-        // Assign GM role to hotel
+        // Mark as GM (no hotel yet — they create their own)
         _db.UserHotelRoles.Add(new UserHotelRole
         {
             UserId = gmUser.Id,
-            HotelId = hotel.Id,
+            HotelId = null,
             Role = AppRole.GeneralManager
         });
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"GM \"{gmUser.FullName}\" created with hotel \"{hotel.Name}\".";
+        TempData["Success"] = $"GM \"{gmUser.FullName}\" created successfully.";
         return RedirectToAction("Index");
     }
 
@@ -213,12 +187,12 @@ public class AdminController : Controller
 
         // Set hotel context to target user's first hotel
         var targetHotelRole = await _db.UserHotelRoles
-            .Where(r => r.UserId == targetUser.Id)
+            .Where(r => r.UserId == targetUser.Id && r.HotelId != null)
             .FirstOrDefaultAsync();
 
         if (targetHotelRole != null)
         {
-            HttpContext.Session.SetInt32("CurrentHotelId", targetHotelRole.HotelId);
+            HttpContext.Session.SetInt32("CurrentHotelId", targetHotelRole.HotelId!.Value);
         }
 
         TempData["Success"] = $"Now impersonating {targetUser.FullName}.";
@@ -237,12 +211,12 @@ public class AdminController : Controller
         if (originalUserId != null)
         {
             var adminHotelRole = await _db.UserHotelRoles
-                .Where(r => r.UserId == originalUserId)
+                .Where(r => r.UserId == originalUserId && r.HotelId != null)
                 .FirstOrDefaultAsync();
 
             if (adminHotelRole != null)
             {
-                HttpContext.Session.SetInt32("CurrentHotelId", adminHotelRole.HotelId);
+                HttpContext.Session.SetInt32("CurrentHotelId", adminHotelRole.HotelId!.Value);
             }
         }
 
