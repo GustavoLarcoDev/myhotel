@@ -131,7 +131,7 @@ systemctl restart myhotel
 
 # PASO 5: Verificar servicio
 echo "[5/6] Verificando servicio..."
-sleep 5
+sleep 15
 if ! systemctl is-active --quiet myhotel; then
     echo "FALLO: Servicio no arrancó." >&2
     rollback
@@ -139,7 +139,7 @@ fi
 
 # PASO 6: Health check
 echo "[6/6] Health check..."
-sleep 3
+sleep 5
 if ! curl -sf --max-time 10 http://localhost:5000/health > /dev/null 2>&1; then
     echo "FALLO: Health check no respondió." >&2
     rollback
