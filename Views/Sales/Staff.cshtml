@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "Sales Staff";
+    var departmentName = (string)ViewBag.DepartmentName;
+    var staffList = (IEnumerable<dynamic>)ViewBag.StaffList;
+}
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <a href="@Url.Action("Index")" class="text-sm text-blue-600 hover:underline">&larr; Back to Sales</a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">@departmentName Staff</h1>
+            <p class="text-sm text-gray-500 mt-1">Team members in the @departmentName department</p>
+        </div>
+    </div>
+
+    <!-- Staff Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-100">
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Name</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Email</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Phone</th>
+                        <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Role</th>
+                        <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @{
+                        var staffCount = 0;
+                    }
+                    @foreach (var staff in staffList)
+                    {
+                        staffCount++;
+                        ApplicationUser user = staff.User;
+                        AppRole role = staff.Role;
+
+                        var roleLabel = role switch
+                        {
+                            AppRole.Admin => "Admin",
+                            AppRole.GeneralManager => "General Manager",
+                            AppRole.AssistantGM => "Assistant GM",
+                            AppRole.DepartmentManager => "Dept. Manager",
+                            AppRole.Employee => "Employee",
+                            _ => "Unknown"
+                        };
+
+                        var roleColor = role switch
+                        {
+                            AppRole.Admin => "bg-red-100 text-red-700",
+                            AppRole.GeneralManager => "bg-purple-100 text-purple-700",
+                            AppRole.AssistantGM => "bg-indigo-100 text-indigo-700",
+                            AppRole.DepartmentManager => "bg-blue-100 text-blue-700",
+                            AppRole.Employee => "bg-gray-100 text-gray-700",
+                            _ => "bg-gray-100 text-gray-700"
+                        };
+
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                                        @(user.FirstName.Length > 0 ? user.FirstName.Substring(0, 1) : "")@(user.LastName.Length > 0 ? user.LastName.Substring(0, 1) : "")
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-800">@user.FullName</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@(user.Email ?? "-")</td>
+                            <td class="px-6 py-3 text-sm text-gray-600">@(user.Phone ?? "-")</td>
+                            <td class="px-6 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @roleColor">@roleLabel</span>
+                            </td>
+                            <td class="px-6 py-3 text-center">
+                                @if (user.IsActive)
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactive</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (staffCount == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
+                                No staff members found in the @departmentName department.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,83 @@
+@{
+    ViewData["Title"] = "New Cleaning Request";
+    var rooms = ViewBag.Rooms as List<Room> ?? new List<Room>();
+    var hkStaff = ViewBag.HkStaff as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-1">
+        <a href="/Housekeeping/CleaningRequests" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">New Cleaning Request</h1>
+    </div>
+    <p class="text-sm text-gray-500">Create a new cleaning request for a room</p>
+</div>
+
+<!-- Form -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+    <form method="post" asp-action="CreateCleaningRequest">
+        @Html.AntiForgeryToken()
+        <div class="space-y-5">
+            <!-- Room -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Room</label>
+                <select name="roomId" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    <option value="">-- No specific room --</option>
+                    @foreach (var room in rooms)
+                    {
+                        <option value="@room.Id">@room.Number (Floor @room.Floor - @room.Type)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Request Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Request Type *</label>
+                <select name="requestType" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    <option value="standard">Standard</option>
+                    <option value="deep">Deep Clean</option>
+                    <option value="turnover">Turnover</option>
+                    <option value="rush">Rush</option>
+                    <option value="inspection">Inspection</option>
+                </select>
+            </div>
+
+            <!-- Priority -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
+                <select name="priority" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    <option value="low">Low</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+
+            <!-- Assigned To -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
+                <select name="assignedTo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    <option value="">-- Unassigned --</option>
+                    @foreach (var staff in hkStaff)
+                    {
+                        <option value="@staff.Id">@staff.FirstName @staff.LastName</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea name="notes" rows="3" placeholder="Any special instructions or details..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Create Request</button>
+                <a href="/Housekeeping/CleaningRequests" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>

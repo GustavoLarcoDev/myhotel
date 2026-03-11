@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -13,11 +14,16 @@ public class PassLogsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PassLogsController(ApplicationDbContext db, HotelContextService hotelContext)
+    public PassLogsController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -72,6 +78,18 @@ public class PassLogsController : Controller
 
         _db.PassLogs.Add(passLog);
         await _db.SaveChangesAsync();
+
+        // Notify the hotel about the new pass log for the incoming shift
+        var user = await _userManager.GetUserAsync(User);
+        await _notifications.NotifyHotelAsync(
+            hotelId.Value,
+            $"New Pass Log: {shiftFrom} to {shiftTo}",
+            priority == "high" || priority == "urgent"
+                ? $"[{priority.ToUpper()}] {(message.Length > 50 ? message.Substring(0, 50) + "..." : message)}"
+                : message.Length > 50 ? message.Substring(0, 50) + "..." : message,
+            "/PassLogs",
+            priority == "high" || priority == "urgent" ? "warning" : "info",
+            user?.Id);
 
         TempData["Success"] = "Pass log entry added successfully.";
         return RedirectToAction("Index");

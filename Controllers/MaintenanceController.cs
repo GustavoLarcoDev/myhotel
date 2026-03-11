@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -13,11 +14,16 @@ public class MaintenanceController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public MaintenanceController(ApplicationDbContext db, HotelContextService hotelContext)
+    public MaintenanceController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -82,6 +88,24 @@ public class MaintenanceController : Controller
         _db.PreventiveMaintenances.Add(item);
         await _db.SaveChangesAsync();
 
+        // Notify Engineering department about the new PM task
+        var engDept = await _db.Departments
+            .FirstOrDefaultAsync(d => d.HotelId == hotelId.Value &&
+                (d.Name.ToLower().Contains("engineering") || d.Name.ToLower().Contains("maintenance")));
+        if (engDept != null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            await _notifications.NotifyDepartmentAsync(
+                hotelId.Value, engDept.Id,
+                $"New PM Task: {item.Title}",
+                item.Description != null && item.Description.Length > 50
+                    ? item.Description.Substring(0, 50) + "..."
+                    : item.Description,
+                "/Maintenance",
+                "info",
+                user?.Id);
+        }
+
         TempData["Success"] = "PM item created.";
         return RedirectToAction("Index");
     }
@@ -113,6 +137,28 @@ public class MaintenanceController : Controller
             };
 
             await _db.SaveChangesAsync();
+
+            // Notify GMs about the completed PM task
+            var user = await _userManager.GetUserAsync(User);
+            var gmUserIds = await _db.UserHotelRoles
+                .Where(r => r.HotelId == hotelId.Value &&
+                            (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var gmId in gmUserIds)
+            {
+                if (gmId == user?.Id) continue;
+                await _notifications.CreateAsync(
+                    hotelId.Value,
+                    gmId,
+                    $"PM Completed: {item.Title}",
+                    null,
+                    "/Maintenance",
+                    "success");
+            }
+
             TempData["Success"] = "PM item marked as completed.";
         }
 

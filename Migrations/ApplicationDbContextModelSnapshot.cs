@@ -301,6 +301,106 @@ namespace MyHotel.Web.Migrations
                     b.ToTable("BudgetItems");
                 });
 
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.CashReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("CashIn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CashOut")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ClosingBalance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CreditCardTotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Date")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HotelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Shift")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Variance")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId");
+
+                    b.ToTable("CashReports");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.CleaningRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AssignedTo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HotelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequestedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RoomId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("CleaningRequests");
+                });
+
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Complaint", b =>
                 {
                     b.Property<int>("Id")
@@ -500,6 +600,61 @@ namespace MyHotel.Web.Migrations
                     b.HasIndex("VendorId");
 
                     b.ToTable("Expenses");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.GroupSale", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CheckIn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CheckOut")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HotelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RoomsBlocked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId");
+
+                    b.ToTable("GroupSales");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Hotel", b =>
@@ -878,6 +1033,9 @@ namespace MyHotel.Web.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("FromUserId")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -900,6 +1058,8 @@ namespace MyHotel.Web.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepartmentId");
+
                     b.HasIndex("FromUserId");
 
                     b.HasIndex("HotelId");
@@ -907,6 +1067,48 @@ namespace MyHotel.Web.Migrations
                     b.HasIndex("ToUserId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HotelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.PassLog", b =>
@@ -1727,6 +1929,34 @@ namespace MyHotel.Web.Migrations
                     b.Navigation("Hotel");
                 });
 
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.CashReport", b =>
+                {
+                    b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.CleaningRequest", b =>
+                {
+                    b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyHotel.Web.Models.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId");
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("Room");
+                });
+
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Complaint", b =>
                 {
                     b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
@@ -1802,6 +2032,17 @@ namespace MyHotel.Web.Migrations
                     b.Navigation("Hotel");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.GroupSale", b =>
+                {
+                    b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.HousekeepingRating", b =>
@@ -1943,6 +2184,10 @@ namespace MyHotel.Web.Migrations
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Message", b =>
                 {
+                    b.HasOne("MyHotel.Web.Models.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
                     b.HasOne("MyHotel.Web.Models.Entities.ApplicationUser", "FromUser")
                         .WithMany()
                         .HasForeignKey("FromUserId")
@@ -1960,11 +2205,32 @@ namespace MyHotel.Web.Migrations
                         .HasForeignKey("ToUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("Department");
+
                     b.Navigation("FromUser");
 
                     b.Navigation("Hotel");
 
                     b.Navigation("ToUser");
+                });
+
+            modelBuilder.Entity("MyHotel.Web.Models.Entities.Notification", b =>
+                {
+                    b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyHotel.Web.Models.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.PassLog", b =>

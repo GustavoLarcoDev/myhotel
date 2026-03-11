@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -13,11 +14,16 @@ public class DailyChecksController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public DailyChecksController(ApplicationDbContext db, HotelContextService hotelContext)
+    public DailyChecksController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -96,6 +102,39 @@ public class DailyChecksController : Controller
             check.IsCompleted = !check.IsCompleted;
             check.CompletedBy = check.IsCompleted ? completedBy : null;
             await _db.SaveChangesAsync();
+
+            // Check if all daily checks are now completed
+            if (check.IsCompleted)
+            {
+                var today = DateTime.Today.ToString("yyyy-MM-dd");
+                var allChecks = await _db.DailyChecks
+                    .Where(c => c.HotelId == hotelId.Value && c.Date == today)
+                    .ToListAsync();
+
+                if (allChecks.Count > 0 && allChecks.All(c => c.IsCompleted))
+                {
+                    // Notify GMs that all daily checks are completed
+                    var user = await _userManager.GetUserAsync(User);
+                    var gmUserIds = await _db.UserHotelRoles
+                        .Where(r => r.HotelId == hotelId.Value &&
+                                    (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+                        .Select(r => r.UserId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    foreach (var gmId in gmUserIds)
+                    {
+                        if (gmId == user?.Id) continue;
+                        await _notifications.CreateAsync(
+                            hotelId.Value,
+                            gmId,
+                            "Daily Checks Completed",
+                            $"All {allChecks.Count} checks for today have been completed.",
+                            "/DailyChecks",
+                            "success");
+                    }
+                }
+            }
         }
 
         return RedirectToAction("Index");

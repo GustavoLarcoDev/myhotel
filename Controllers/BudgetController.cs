@@ -15,12 +15,14 @@ public class BudgetController : Controller
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly NotificationService _notifications;
 
-    public BudgetController(ApplicationDbContext db, HotelContextService hotelContext, UserManager<ApplicationUser> userManager)
+    public BudgetController(ApplicationDbContext db, HotelContextService hotelContext, UserManager<ApplicationUser> userManager, NotificationService notifications)
     {
         _db = db;
         _hotelContext = hotelContext;
         _userManager = userManager;
+        _notifications = notifications;
     }
 
     public async Task<IActionResult> Index(string period = "", string view = "expenses")
@@ -113,6 +115,17 @@ public class BudgetController : Controller
 
         _db.Expenses.Add(expense);
         await _db.SaveChangesAsync();
+
+        // Notify GMs about the new expense
+        var gmIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value && (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+            .Select(r => r.UserId).Distinct().ToListAsync();
+        foreach (var gmId in gmIds)
+        {
+            await _notifications.CreateAsync(hotelId.Value, gmId, $"New Expense: ${amount}",
+                $"{description.Trim()} - {category ?? "Other"}", "/Budget", "info");
+        }
+
         TempData["Success"] = "Expense created.";
         return RedirectToAction("Index", new { period, view = "expenses" });
     }
@@ -151,6 +164,17 @@ public class BudgetController : Controller
         }
 
         await _db.SaveChangesAsync();
+
+        // Notify GMs about the budget update
+        var gmIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value && (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+            .Select(r => r.UserId).Distinct().ToListAsync();
+        foreach (var gmId in gmIds)
+        {
+            await _notifications.CreateAsync(hotelId.Value, gmId, $"Budget Updated: {category}",
+                $"Planned amount set to ${plannedAmount} for {period}", "/Budget", "info");
+        }
+
         TempData["Success"] = "Budget item saved.";
         return RedirectToAction("Index", new { period, view = "budget" });
     }

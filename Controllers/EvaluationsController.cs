@@ -14,15 +14,18 @@ public class EvaluationsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
 
     public EvaluationsController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
-        HotelContextService hotelContext)
+        HotelContextService hotelContext,
+        NotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _hotelContext = hotelContext;
+        _notifications = notifications;
     }
 
     // GET: /Evaluations?tab=evaluations|hkratings
@@ -181,6 +184,11 @@ public class EvaluationsController : Controller
 
         _db.Evaluations.Add(evaluation);
         await _db.SaveChangesAsync();
+
+        // Notify the employee being evaluated
+        await _notifications.CreateAsync(hotelId.Value, employeeId, "New Evaluation",
+            $"You received a new evaluation (Rating: {rating}/5).", "/Evaluations", "info");
+
         TempData["Success"] = "Evaluation submitted.";
         return RedirectToAction("Index", new { tab = "evaluations" });
     }
@@ -221,6 +229,11 @@ public class EvaluationsController : Controller
 
         _db.HousekeepingRatings.Add(rating);
         await _db.SaveChangesAsync();
+
+        // Notify the housekeeper about the new rating
+        await _notifications.CreateAsync(hotelId.Value, housekeeperId, "New Rating",
+            $"You received a new housekeeping rating ({stars} stars).", "/Evaluations", "info");
+
         TempData["Success"] = "Housekeeping rating submitted.";
         return RedirectToAction("Index", new { tab = "hkratings" });
     }

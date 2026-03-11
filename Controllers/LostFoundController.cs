@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -12,11 +13,16 @@ public class LostFoundController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public LostFoundController(ApplicationDbContext db, HotelContextService hotelContext)
+    public LostFoundController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(string status = "all", string? search = null)
@@ -93,6 +99,28 @@ public class LostFoundController : Controller
 
         _db.LostFoundItems.Add(item);
         await _db.SaveChangesAsync();
+
+        // Notify GMs about the new lost item
+        var user = await _userManager.GetUserAsync(User);
+        var gmUserIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value &&
+                        (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var gmId in gmUserIds)
+        {
+            if (gmId == user?.Id) continue;
+            await _notifications.CreateAsync(
+                hotelId.Value,
+                gmId,
+                $"Lost Item Found: {item.ItemDescription}",
+                item.Location != null ? $"Found at: {item.Location}" : null,
+                "/LostFound",
+                "info");
+        }
+
         TempData["Success"] = "Lost & Found item recorded.";
         return RedirectToAction("Index");
     }
@@ -117,6 +145,23 @@ public class LostFoundController : Controller
         item.ClaimedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+
+        // Notify Front Desk department about the claimed item
+        var fdDept = await _db.Departments
+            .FirstOrDefaultAsync(d => d.HotelId == hotelId.Value &&
+                d.Name.ToLower().Contains("front desk"));
+        if (fdDept != null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            await _notifications.NotifyDepartmentAsync(
+                hotelId.Value, fdDept.Id,
+                $"Item Claimed: {item.ItemDescription}",
+                item.GuestName != null ? $"Claimed by: {item.GuestName}" : null,
+                "/LostFound",
+                "info",
+                user?.Id);
+        }
+
         TempData["Success"] = "Item marked as claimed.";
         return RedirectToAction("Index");
     }

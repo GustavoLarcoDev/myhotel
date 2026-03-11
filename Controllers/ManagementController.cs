@@ -14,15 +14,18 @@ public class ManagementController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
 
     public ManagementController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
-        HotelContextService hotelContext)
+        HotelContextService hotelContext,
+        NotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _hotelContext = hotelContext;
+        _notifications = notifications;
     }
 
     private async Task<bool> IsGMOrAdmin()
@@ -114,7 +117,7 @@ public class ManagementController : Controller
         await _db.SaveChangesAsync();
 
         // Create default departments
-        var defaultDepartments = new[] { "Front Desk", "Housekeeping", "Maintenance", "Security", "Food & Beverage" };
+        var defaultDepartments = new[] { "Sales", "Engineering", "Front Desk", "Housekeeping", "Administrative" };
         foreach (var dept in defaultDepartments)
         {
             _db.Departments.Add(new Department { Name = dept, HotelId = hotel.Id });
@@ -326,6 +329,27 @@ public class ManagementController : Controller
 
         await _db.SaveChangesAsync();
 
+        // Notify GMs of the hotel about the new employee
+        var deptName = "";
+        if (departmentId.HasValue && departmentId.Value > 0)
+        {
+            var dept = await _db.Departments.FindAsync(departmentId.Value);
+            deptName = dept?.Name ?? "";
+        }
+        var gmIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId && (r.Role == AppRole.GeneralManager))
+            .Select(r => r.UserId).Distinct().ToListAsync();
+        var currentUser = await _userManager.GetUserAsync(User);
+        foreach (var gmId in gmIds)
+        {
+            if (gmId == currentUser?.Id) continue;
+            await _notifications.CreateAsync(hotelId, gmId,
+                $"New Employee: {firstName} {lastName}",
+                $"Role: {role}, Department: {deptName}",
+                $"/Management/Users?hotelId={hotelId}",
+                "info");
+        }
+
         TempData["Success"] = $"User \"{user.FullName}\" created successfully.";
         return RedirectToAction("Users", new { hotelId });
     }
@@ -396,6 +420,8 @@ public class ManagementController : Controller
             return RedirectToAction("EditUser", new { id });
         }
 
+        var wasActive = user.IsActive;
+
         user.FirstName = firstName;
         user.LastName = lastName;
         user.Phone = phone;
@@ -445,6 +471,24 @@ public class ManagementController : Controller
         }
 
         await _db.SaveChangesAsync();
+
+        // Notify GMs if employee was deactivated
+        if (wasActive && !isActive)
+        {
+            var gmIds = await _db.UserHotelRoles
+                .Where(r => r.HotelId == hotelId && (r.Role == AppRole.GeneralManager))
+                .Select(r => r.UserId).Distinct().ToListAsync();
+            var currentUser = await _userManager.GetUserAsync(User);
+            foreach (var gmId in gmIds)
+            {
+                if (gmId == currentUser?.Id) continue;
+                await _notifications.CreateAsync(hotelId, gmId,
+                    $"Employee Deactivated: {firstName} {lastName}",
+                    null,
+                    $"/Management/Users?hotelId={hotelId}",
+                    "info");
+            }
+        }
 
         TempData["Success"] = $"User \"{user.FullName}\" updated successfully.";
         return RedirectToAction("Users", new { hotelId });

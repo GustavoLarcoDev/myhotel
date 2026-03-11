@@ -14,19 +14,22 @@ public class MeetingsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
 
     public MeetingsController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
-        HotelContextService hotelContext)
+        HotelContextService hotelContext,
+        NotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _hotelContext = hotelContext;
+        _notifications = notifications;
     }
 
-    // GET: /Meetings?upcoming=true
-    public async Task<IActionResult> Index(bool upcoming = true)
+    // GET: /Meetings?upcoming=true&dept=sales
+    public async Task<IActionResult> Index(bool upcoming = true, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -39,6 +42,21 @@ public class MeetingsController : Controller
             .Include(m => m.Attendees)
                 .ThenInclude(a => a.User)
             .AsQueryable();
+
+        // Department filtering
+        int? filterDepartmentId = null;
+        string? deptDisplayName = null;
+        if (!string.IsNullOrWhiteSpace(dept))
+        {
+            var (resolvedId, displayName) = await ResolveDepartmentAsync(hotelId.Value, dept);
+            filterDepartmentId = resolvedId;
+            deptDisplayName = displayName;
+
+            if (filterDepartmentId != null)
+            {
+                meetingsQuery = meetingsQuery.Where(m => m.DepartmentId == filterDepartmentId.Value);
+            }
+        }
 
         if (upcoming)
         {
@@ -89,6 +107,8 @@ public class MeetingsController : Controller
         ViewBag.Departments = departments;
         ViewBag.Employees = employees;
         ViewBag.UserDepartments = userDepartments;
+        ViewBag.CurrentDept = dept;
+        ViewBag.DeptName = deptDisplayName;
 
         return View(meetings);
     }
@@ -96,7 +116,7 @@ public class MeetingsController : Controller
     // POST: /Meetings/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string title, string? description, DateTime date, TimeSpan time, int? departmentId, string[]? attendeeIds)
+    public async Task<IActionResult> Create(string title, string? description, DateTime date, TimeSpan time, int? departmentId, string[]? attendeeIds, string? dept)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -107,7 +127,15 @@ public class MeetingsController : Controller
         if (string.IsNullOrWhiteSpace(title))
         {
             TempData["Error"] = "Meeting title is required.";
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { dept });
+        }
+
+        // Auto-set departmentId from dept parameter if not explicitly provided
+        if ((departmentId == null || departmentId == 0) && !string.IsNullOrWhiteSpace(dept))
+        {
+            var (resolvedId, _) = await ResolveDepartmentAsync(hotelId.Value, dept);
+            if (resolvedId != null)
+                departmentId = resolvedId;
         }
 
         var meeting = new Meeting
@@ -138,16 +166,33 @@ public class MeetingsController : Controller
                 });
             }
             await _db.SaveChangesAsync();
+
+            // Notify all attendees
+            var link = string.IsNullOrWhiteSpace(dept) ? "/Meetings" : $"/Meetings?dept={dept}";
+            var timeFormatted = DateTime.Today.Add(time).ToString("h:mm tt");
+            var message = $"Scheduled for {date:MMM dd, yyyy} at {timeFormatted}";
+
+            foreach (var attendeeId in attendeeIds)
+            {
+                await _notifications.CreateAsync(
+                    hotelId.Value,
+                    attendeeId,
+                    $"New Meeting: {title.Trim()}",
+                    message,
+                    link,
+                    "info"
+                );
+            }
         }
 
         TempData["Success"] = "Meeting created.";
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { dept });
     }
 
     // POST: /Meetings/AddNotes
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddNotes(int id, string notes)
+    public async Task<IActionResult> AddNotes(int id, string notes, string? dept)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -158,19 +203,19 @@ public class MeetingsController : Controller
         if (meeting == null)
         {
             TempData["Error"] = "Meeting not found.";
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { dept });
         }
 
         meeting.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
         await _db.SaveChangesAsync();
         TempData["Success"] = "Notes updated.";
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { dept });
     }
 
     // POST: /Meetings/ToggleAttendance
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleAttendance(int attendeeId)
+    public async Task<IActionResult> ToggleAttendance(int attendeeId, string? dept)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -182,18 +227,18 @@ public class MeetingsController : Controller
         if (attendee == null)
         {
             TempData["Error"] = "Attendee not found.";
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { dept });
         }
 
         attendee.Attended = !attendee.Attended;
         await _db.SaveChangesAsync();
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { dept });
     }
 
     // POST: /Meetings/Delete
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, string? dept)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -205,13 +250,43 @@ public class MeetingsController : Controller
         if (meeting == null)
         {
             TempData["Error"] = "Meeting not found.";
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { dept });
         }
 
         _db.MeetingAttendees.RemoveRange(meeting.Attendees);
         _db.Meetings.Remove(meeting);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Meeting deleted.";
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { dept });
+    }
+
+    /// <summary>
+    /// Resolves a dept query parameter to a department ID and display name.
+    /// </summary>
+    private async Task<(int? DepartmentId, string? DisplayName)> ResolveDepartmentAsync(int hotelId, string dept)
+    {
+        var deptLower = dept.ToLowerInvariant();
+
+        // Map dept param to search patterns and display names
+        var (patterns, displayName) = deptLower switch
+        {
+            "sales" => (new[] { "sales" }, "Sales"),
+            "engineering" => (new[] { "engineering", "maintenance" }, "Engineering"),
+            "frontdesk" => (new[] { "front desk" }, "Front Desk"),
+            "housekeeping" => (new[] { "housekeeping" }, "Housekeeping"),
+            "administrative" => (new[] { "administrative" }, "Administrative"),
+            _ => (Array.Empty<string>(), (string?)null)
+        };
+
+        if (patterns.Length == 0) return (null, null);
+
+        var departments = await _db.Departments
+            .Where(d => d.HotelId == hotelId)
+            .ToListAsync();
+
+        var match = departments.FirstOrDefault(d =>
+            patterns.Any(p => d.Name.Contains(p, StringComparison.OrdinalIgnoreCase)));
+
+        return match != null ? (match.Id, displayName) : (null, displayName);
     }
 }

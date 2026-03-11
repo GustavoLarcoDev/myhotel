@@ -1,33 +1,18 @@
 @{
-    ViewData["Title"] = "Hotel Management";
+    ViewData["Title"] = "Managers";
     var hotels = ViewBag.Hotels as List<MyHotel.Web.Models.Entities.Hotel>;
 }
 
 <div class="space-y-8">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Hotel Management</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Managers</h1>
             <p class="text-sm text-gray-500 mt-1">Overview of your hotels and operations</p>
         </div>
-        <a href="/Management/CreateHotel" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-            + New Hotel
-        </a>
     </div>
 
     <!-- Stat Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <a href="/Management/MyHotels" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-500">My Hotels</p>
-                    <p class="text-2xl font-bold text-gray-900">@ViewBag.HotelCount</p>
-                </div>
-            </div>
-        </a>
-
         <a href="/Management/Users" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
@@ -36,6 +21,18 @@
                 <div>
                     <p class="text-sm font-medium text-gray-500">Total Staff</p>
                     <p class="text-2xl font-bold text-gray-900">@ViewBag.TotalUsers</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="/Management/MyHotels" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">My Hotels</p>
+                    <p class="text-2xl font-bold text-gray-900">@ViewBag.HotelCount</p>
                 </div>
             </div>
         </a>
@@ -69,17 +66,17 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <a href="/Management/CreateHotel" class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                <span class="font-medium text-sm">Add Hotel</span>
-            </a>
-            <a href="/Management/CreateUser" class="flex items-center gap-3 p-4 bg-green-50 rounded-xl text-green-700 hover:bg-green-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                <span class="font-medium text-sm">Add Employee</span>
-            </a>
-            <a href="/Management/Users" class="flex items-center gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors">
+            <a href="/Management/Users" class="flex items-center gap-3 p-4 bg-green-50 rounded-xl text-green-700 hover:bg-green-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                <span class="font-medium text-sm">View Staff</span>
+                <span class="font-medium text-sm">All Employees</span>
+            </a>
+            <a href="/Management/CreateUser" class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                <span class="font-medium text-sm">Create Employee</span>
+            </a>
+            <a href="/Management/MyHotels" class="flex items-center gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                <span class="font-medium text-sm">My Hotels</span>
             </a>
             <a href="/Management/Departments" class="flex items-center gap-3 p-4 bg-purple-50 rounded-xl text-purple-700 hover:bg-purple-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -87,6 +84,64 @@
             </a>
         </div>
     </div>
+
+    <!-- Department Overview -->
+    @if (hotels != null && hotels.Any())
+    {
+        var allDepartments = hotels.SelectMany(h => h.Departments).ToList();
+        var standardDepts = new[] { "Sales", "Engineering", "Front Desk", "Housekeeping", "Administrative" };
+        var deptBgColors = new Dictionary<string, string>
+        {
+            { "Sales", "bg-emerald-50" },
+            { "Engineering", "bg-orange-50" },
+            { "Front Desk", "bg-blue-50" },
+            { "Housekeeping", "bg-pink-50" },
+            { "Administrative", "bg-violet-50" }
+        };
+        var deptTextColors = new Dictionary<string, string>
+        {
+            { "Sales", "text-emerald-600" },
+            { "Engineering", "text-orange-600" },
+            { "Front Desk", "text-blue-600" },
+            { "Housekeeping", "text-pink-600" },
+            { "Administrative", "text-violet-600" }
+        };
+        var deptSvgPaths = new Dictionary<string, string>
+        {
+            { "Sales", "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/>" },
+            { "Engineering", "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/>" },
+            { "Front Desk", "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'/>" },
+            { "Housekeeping", "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'/>" },
+            { "Administrative", "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/>" }
+        };
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Department Overview</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                @foreach (var deptName in standardDepts)
+                {
+                    var matchingDepts = allDepartments.Where(d => d.Name.Equals(deptName, StringComparison.OrdinalIgnoreCase)).ToList();
+                    var employeeCount = matchingDepts.Sum(d => d.UserDepartments?.Count ?? 0);
+                    var bgColor = deptBgColors.ContainsKey(deptName) ? deptBgColors[deptName] : "bg-gray-50";
+                    var textColor = deptTextColors.ContainsKey(deptName) ? deptTextColors[deptName] : "text-gray-600";
+                    var svgPath = deptSvgPaths.ContainsKey(deptName) ? deptSvgPaths[deptName] : "<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2'/>";
+
+                    <div class="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 @bgColor rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 @textColor" fill="none" viewBox="0 0 24 24" stroke="currentColor">@Html.Raw(svgPath)</svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 text-sm">@deptName</h3>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-bold text-gray-900">@employeeCount</span>
+                            <span class="text-sm text-gray-500">employee@(employeeCount != 1 ? "s" : "")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     <!-- Hotels Overview -->
     @if (hotels != null && hotels.Any())

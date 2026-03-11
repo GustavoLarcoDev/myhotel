@@ -63,21 +63,21 @@
 
 <!-- Type Tabs -->
 <div class="flex flex-wrap gap-2 mb-6">
-    <a href="/Inventory?type=market"
+    <a href="/Inventory?type=market@(ViewBag.CurrentDept != null ? "&dept=" + ViewBag.CurrentDept : "")"
        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "market" ? "bg-blue-600 text-white shadow-sm" : "text-blue-600 hover:bg-blue-50 border border-blue-200")">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["market"]" />
         </svg>
         Market
     </a>
-    <a href="/Inventory?type=cleaning"
+    <a href="/Inventory?type=cleaning@(ViewBag.CurrentDept != null ? "&dept=" + ViewBag.CurrentDept : "")"
        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "cleaning" ? "bg-purple-600 text-white shadow-sm" : "text-purple-600 hover:bg-purple-50 border border-purple-200")">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["cleaning"]" />
         </svg>
         Cleaning
     </a>
-    <a href="/Inventory?type=maintenance"
+    <a href="/Inventory?type=maintenance@(ViewBag.CurrentDept != null ? "&dept=" + ViewBag.CurrentDept : "")"
        class="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 @(currentType == "maintenance" ? "bg-orange-600 text-white shadow-sm" : "text-orange-600 hover:bg-orange-50 border border-orange-200")">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@typeIcons["maintenance"]" />
@@ -176,6 +176,10 @@
                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <input type="hidden" name="type" value="@currentType" />
+        @if (ViewBag.CurrentDept != null)
+        {
+            <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+        }
         <button type="submit"
                 class="@tabActive px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             Add Category
@@ -218,6 +222,10 @@
                       onsubmit="return confirm('Delete this category?')">
                     <input type="hidden" name="id" value="@category.Id" />
                     <input type="hidden" name="type" value="@currentType" />
+                    @if (ViewBag.CurrentDept != null)
+                    {
+                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                    }
                     <button type="submit" class="text-red-400 hover:text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
                         Delete Category
                     </button>
@@ -238,6 +246,10 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="categoryId" value="@category.Id" />
                     <input type="hidden" name="type" value="@currentType" />
+                    @if (ViewBag.CurrentDept != null)
+                    {
+                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                    }
                     <div class="flex-1 min-w-[140px]">
                         <label class="text-xs text-gray-600 block mb-1">Name *</label>
                         <input type="text" name="name" required placeholder="Item name"
@@ -301,6 +313,10 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="hidden" name="type" value="@currentType" />
+                                @if (ViewBag.CurrentDept != null)
+                                {
+                                    <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                                }
                                 <button type="submit"
                                         class="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                         title="Delete">
@@ -344,6 +360,10 @@
                                 <input type="hidden" name="itemId" value="@item.Id" />
                                 <input type="hidden" name="quantity" value="1" />
                                 <input type="hidden" name="type" value="@currentType" />
+                                @if (ViewBag.CurrentDept != null)
+                                {
+                                    <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                                }
                                 <button type="submit"
                                         class="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 hover:text-green-600 transition-colors flex items-center justify-center mx-auto mt-1 text-gray-400">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -386,6 +406,10 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="itemId" value="@item.Id" />
                                     <input type="hidden" name="type" value="@currentType" />
+                                    @if (ViewBag.CurrentDept != null)
+                                    {
+                                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                                    }
                                     <div class="space-y-2">
                                         <input type="number" name="quantity" value="1" min="1" required
                                                class="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -402,6 +426,10 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="itemId" value="@item.Id" />
                                     <input type="hidden" name="type" value="@currentType" />
+                                    @if (ViewBag.CurrentDept != null)
+                                    {
+                                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                                    }
                                     <div class="flex gap-1">
                                         <input type="number" name="newQuantity" value="@item.Quantity" min="0" required
                                                class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -425,6 +453,10 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="type" value="@currentType" />
+                                    @if (ViewBag.CurrentDept != null)
+                                    {
+                                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
+                                    }
                                     <input type="text" name="name" value="@item.Name" required placeholder="Name"
                                            class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     <div class="grid grid-cols-2 gap-1">

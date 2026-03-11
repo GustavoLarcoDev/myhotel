@@ -10,6 +10,7 @@
     var weekDays = ViewBag.WeekDays as List<DateTime> ?? new List<DateTime>();
     var employees = ViewBag.Employees as List<ApplicationUser> ?? new List<ApplicationUser>();
     var schedules = ViewBag.Schedules as List<Schedule> ?? new List<Schedule>();
+    var currentDept = ViewBag.CurrentDept as string;
 }
 
 <!-- Header -->
@@ -24,25 +25,30 @@
         <!-- Department Dropdown -->
         <form method="get" class="flex items-center gap-2">
             <input type="hidden" name="weekStart" value="@weekStart.ToString("yyyy-MM-dd")" />
+            @if (currentDept != null)
+            {
+                <input type="hidden" name="dept" value="@currentDept" />
+            }
             <select name="departmentId" onchange="this.form.submit()"
                 class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <option value="0">-- Select Department --</option>
                 @foreach (var dept in departments)
                 {
-                    <option value="@dept.Id" selected="@(selectedDeptId == dept.Id)">@dept.Name</option>
+                    var isSelected = selectedDeptId == dept.Id || (selectedDeptId == 0 && currentDept != null && string.Equals(dept.Name, currentDept, StringComparison.OrdinalIgnoreCase));
+                    <option value="@dept.Id" selected="@isSelected">@dept.Name</option>
                 }
             </select>
         </form>
 
         <!-- Week Navigation -->
         <div class="flex items-center gap-1">
-            <a href="/Scheduling?departmentId=@selectedDeptId&weekStart=@prevWeek"
+            <a href="/Scheduling?departmentId=@selectedDeptId&weekStart=@prevWeek@(currentDept != null ? "&dept=" + currentDept : "")"
                class="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
-            <a href="/Scheduling?departmentId=@selectedDeptId"
+            <a href="/Scheduling?departmentId=@selectedDeptId@(currentDept != null ? "&dept=" + currentDept : "")"
                class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">Today</a>
-            <a href="/Scheduling?departmentId=@selectedDeptId&weekStart=@nextWeek"
+            <a href="/Scheduling?departmentId=@selectedDeptId&weekStart=@nextWeek@(currentDept != null ? "&dept=" + currentDept : "")"
                class="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
@@ -120,6 +126,10 @@ else
                                                 <input type="hidden" name="id" value="@sched.Id" />
                                                 <input type="hidden" name="departmentId" value="@selectedDeptId" />
                                                 <input type="hidden" name="weekStart" value="@weekStart.ToString("yyyy-MM-dd")" />
+                                                @if (currentDept != null)
+                                                {
+                                                    <input type="hidden" name="dept" value="@currentDept" />
+                                                }
                                                 <button type="submit" onclick="return confirm('Remove this schedule entry?')"
                                                     class="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] hover:bg-red-600 leading-none">
                                                     x
@@ -142,6 +152,10 @@ else
                                                 <input type="hidden" name="employeeId" value="@emp.Id" />
                                                 <input type="hidden" name="date" value="@day.ToString("yyyy-MM-dd")" />
                                                 <input type="hidden" name="weekStart" value="@weekStart.ToString("yyyy-MM-dd")" />
+                                                @if (currentDept != null)
+                                                {
+                                                    <input type="hidden" name="dept" value="@currentDept" />
+                                                }
                                                 <input type="time" name="startTime" value="07:00" required
                                                     class="w-full text-[10px] border border-gray-200 rounded px-1 py-0.5" />
                                                 <input type="time" name="endTime" value="15:00" required
@@ -210,6 +224,10 @@ else
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="departmentId" value="@selectedDeptId" />
                     <input type="hidden" name="weekStart" value="@weekStart.ToString("yyyy-MM-dd")" />
+                    @if (currentDept != null)
+                    {
+                        <input type="hidden" name="dept" value="@currentDept" />
+                    }
 
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Employee</label>

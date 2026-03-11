@@ -14,19 +14,22 @@ public class SchedulingController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
 
     public SchedulingController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
-        HotelContextService hotelContext)
+        HotelContextService hotelContext,
+        NotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _hotelContext = hotelContext;
+        _notifications = notifications;
     }
 
-    // GET: /Scheduling?departmentId=0&weekStart=2026-03-02
-    public async Task<IActionResult> Index(int departmentId = 0, string? weekStart = null)
+    // GET: /Scheduling?departmentId=0&weekStart=2026-03-02&dept=engineering
+    public async Task<IActionResult> Index(int departmentId = 0, string? weekStart = null, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -56,8 +59,28 @@ public class SchedulingController : Controller
             .OrderBy(d => d.Name)
             .ToListAsync();
 
+        // Auto-resolve dept query parameter to departmentId
+        if (!string.IsNullOrEmpty(dept) && departmentId == 0)
+        {
+            var deptLower = dept.ToLowerInvariant();
+            Department? matched = deptLower switch
+            {
+                "sales" => departments.FirstOrDefault(d => d.Name.Contains("sales", StringComparison.OrdinalIgnoreCase)),
+                "engineering" => departments.FirstOrDefault(d =>
+                    d.Name.Contains("engineering", StringComparison.OrdinalIgnoreCase) ||
+                    d.Name.Contains("maintenance", StringComparison.OrdinalIgnoreCase)),
+                "frontdesk" => departments.FirstOrDefault(d => d.Name.Contains("front desk", StringComparison.OrdinalIgnoreCase)),
+                "housekeeping" => departments.FirstOrDefault(d => d.Name.Contains("housekeeping", StringComparison.OrdinalIgnoreCase)),
+                "administrative" => departments.FirstOrDefault(d => d.Name.Contains("administrative", StringComparison.OrdinalIgnoreCase)),
+                _ => null
+            };
+            if (matched != null)
+                departmentId = matched.Id;
+        }
+
         ViewBag.Departments = departments;
         ViewBag.SelectedDepartmentId = departmentId;
+        ViewBag.CurrentDept = dept;
         ViewBag.WeekStart = weekStartDate;
         ViewBag.WeekEnd = weekEndDate;
         ViewBag.PrevWeek = weekStartDate.AddDays(-7).ToString("yyyy-MM-dd");
@@ -105,7 +128,7 @@ public class SchedulingController : Controller
 
     // POST: /Scheduling/Create
     [HttpPost]
-    public async Task<IActionResult> Create(int departmentId, string employeeId, DateTime date, TimeSpan startTime, TimeSpan endTime, string? notes, string? weekStart)
+    public async Task<IActionResult> Create(int departmentId, string employeeId, DateTime date, TimeSpan startTime, TimeSpan endTime, string? notes, string? weekStart, string? dept)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -116,7 +139,7 @@ public class SchedulingController : Controller
         if (string.IsNullOrWhiteSpace(employeeId) || departmentId == 0)
         {
             TempData["Error"] = "Employee and department are required.";
-            return RedirectToAction("Index", new { departmentId, weekStart });
+            return RedirectToAction("Index", new { departmentId, weekStart, dept });
         }
 
         // Allow overnight shifts (e.g., 11 PM to 7 AM) where endTime < startTime
@@ -136,13 +159,23 @@ public class SchedulingController : Controller
 
         _db.Schedules.Add(schedule);
         await _db.SaveChangesAsync();
+
+        // Notify the scheduled employee
+        await _notifications.CreateAsync(
+            hotelId.Value,
+            employeeId,
+            "Schedule Updated",
+            $"You've been scheduled for {date:MMM dd}",
+            $"/Scheduling?dept={dept}",
+            "info");
+
         TempData["Success"] = "Schedule entry added.";
-        return RedirectToAction("Index", new { departmentId, weekStart });
+        return RedirectToAction("Index", new { departmentId, weekStart, dept });
     }
 
     // POST: /Scheduling/Delete
     [HttpPost]
-    public async Task<IActionResult> Delete(int id, int departmentId = 0, string? weekStart = null)
+    public async Task<IActionResult> Delete(int id, int departmentId = 0, string? weekStart = null, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -153,12 +186,12 @@ public class SchedulingController : Controller
         if (schedule == null)
         {
             TempData["Error"] = "Schedule entry not found.";
-            return RedirectToAction("Index", new { departmentId, weekStart });
+            return RedirectToAction("Index", new { departmentId, weekStart, dept });
         }
 
         _db.Schedules.Remove(schedule);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Schedule entry removed.";
-        return RedirectToAction("Index", new { departmentId, weekStart });
+        return RedirectToAction("Index", new { departmentId, weekStart, dept });
     }
 }

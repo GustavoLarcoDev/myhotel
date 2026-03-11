@@ -20,10 +20,22 @@ public class InventoryController : Controller
         _hotelContext = hotelContext;
     }
 
-    public async Task<IActionResult> Index(string type = "market")
+    public async Task<IActionResult> Index(string type = "market", string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
+
+        // Map department context to default inventory type
+        if (!string.IsNullOrEmpty(dept))
+        {
+            type = dept.ToLowerInvariant() switch
+            {
+                "sales" => "market",
+                "engineering" => "maintenance",
+                "housekeeping" => "cleaning",
+                _ => type
+            };
+        }
 
         if (type != "market" && type != "cleaning" && type != "maintenance")
             type = "market";
@@ -64,6 +76,7 @@ public class InventoryController : Controller
             .ToListAsync();
 
         ViewBag.CurrentType = type;
+        ViewBag.CurrentDept = dept;
         ViewBag.TotalItems = totalItems;
         ViewBag.LowStockCount = lowStockCount;
         ViewBag.LowStockTypeCount = lowStockTypeCount;
@@ -75,7 +88,7 @@ public class InventoryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateCategory(string name, string type)
+    public async Task<IActionResult> CreateCategory(string name, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -83,7 +96,7 @@ public class InventoryController : Controller
         if (string.IsNullOrWhiteSpace(name))
         {
             TempData["Error"] = "Category name is required.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (type != "market" && type != "cleaning" && type != "maintenance")
@@ -99,11 +112,11 @@ public class InventoryController : Controller
         _db.InventoryCategories.Add(category);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Category created.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateItem(int categoryId, string name, int quantity, string unit, int minStock, string? location, decimal? cost, string type)
+    public async Task<IActionResult> CreateItem(int categoryId, string name, int quantity, string unit, int minStock, string? location, decimal? cost, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -111,7 +124,7 @@ public class InventoryController : Controller
         if (string.IsNullOrWhiteSpace(name))
         {
             TempData["Error"] = "Item name is required.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         var category = await _db.InventoryCategories
@@ -119,7 +132,7 @@ public class InventoryController : Controller
         if (category == null)
         {
             TempData["Error"] = "Category not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         var item = new InventoryItem
@@ -138,11 +151,11 @@ public class InventoryController : Controller
         _db.InventoryItems.Add(item);
         await _db.SaveChangesAsync();
         TempData["Success"] = $"'{item.Name}' added.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddStock(int itemId, int quantity, string? notes, string type)
+    public async Task<IActionResult> AddStock(int itemId, int quantity, string? notes, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -152,13 +165,13 @@ public class InventoryController : Controller
         if (item == null)
         {
             TempData["Error"] = "Item not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (quantity <= 0)
         {
             TempData["Error"] = "Quantity must be greater than zero.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         var createdBy = User.FindFirstValue(ClaimTypes.Name)
@@ -180,11 +193,11 @@ public class InventoryController : Controller
         _db.InventoryTransactions.Add(transaction);
         await _db.SaveChangesAsync();
         TempData["Success"] = $"+{quantity} {item.Unit}(s) to {item.Name}.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> RemoveStock(int itemId, int quantity, string? notes, string type)
+    public async Task<IActionResult> RemoveStock(int itemId, int quantity, string? notes, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -194,13 +207,13 @@ public class InventoryController : Controller
         if (item == null)
         {
             TempData["Error"] = "Item not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (quantity <= 0)
         {
             TempData["Error"] = "Quantity must be greater than zero.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         // Don't go below 0
@@ -208,7 +221,7 @@ public class InventoryController : Controller
         if (actualRemove == 0)
         {
             TempData["Error"] = "Stock is already at 0.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         var createdBy = User.FindFirstValue(ClaimTypes.Name)
@@ -230,11 +243,11 @@ public class InventoryController : Controller
         _db.InventoryTransactions.Add(transaction);
         await _db.SaveChangesAsync();
         TempData["Success"] = $"-{actualRemove} {item.Unit}(s) from {item.Name}.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> AdjustStock(int itemId, int newQuantity, string? notes, string type)
+    public async Task<IActionResult> AdjustStock(int itemId, int newQuantity, string? notes, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -244,7 +257,7 @@ public class InventoryController : Controller
         if (item == null)
         {
             TempData["Error"] = "Item not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (newQuantity < 0) newQuantity = 0;
@@ -253,7 +266,7 @@ public class InventoryController : Controller
         if (diff == 0)
         {
             TempData["Success"] = $"{item.Name} stock unchanged ({newQuantity}).";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         var createdBy = User.FindFirstValue(ClaimTypes.Name)
@@ -275,11 +288,11 @@ public class InventoryController : Controller
         _db.InventoryTransactions.Add(transaction);
         await _db.SaveChangesAsync();
         TempData["Success"] = $"{item.Name} stock set to {newQuantity}.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> EditItem(int id, string name, string unit, int minStock, string? location, decimal? cost, string type)
+    public async Task<IActionResult> EditItem(int id, string name, string unit, int minStock, string? location, decimal? cost, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -289,13 +302,13 @@ public class InventoryController : Controller
         if (item == null)
         {
             TempData["Error"] = "Item not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (string.IsNullOrWhiteSpace(name))
         {
             TempData["Error"] = "Item name is required.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         item.Name = name.Trim();
@@ -306,11 +319,11 @@ public class InventoryController : Controller
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"'{item.Name}' updated.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteItem(int id, string type)
+    public async Task<IActionResult> DeleteItem(int id, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -320,17 +333,17 @@ public class InventoryController : Controller
         if (item == null)
         {
             TempData["Error"] = "Item not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         _db.InventoryItems.Remove(item);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Item deleted.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteCategory(int id, string type)
+    public async Task<IActionResult> DeleteCategory(int id, string type, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -341,19 +354,19 @@ public class InventoryController : Controller
         if (category == null)
         {
             TempData["Error"] = "Category not found.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         if (category.Items.Any())
         {
             TempData["Error"] = "Cannot delete category with items. Remove all items first.";
-            return RedirectToAction("Index", new { type });
+            return RedirectToAction("Index", new { type, dept });
         }
 
         _db.InventoryCategories.Remove(category);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Category deleted.";
-        return RedirectToAction("Index", new { type });
+        return RedirectToAction("Index", new { type, dept });
     }
 
     [HttpGet]

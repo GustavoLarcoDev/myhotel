@@ -1,0 +1,79 @@
+@{
+    ViewData["Title"] = "Front Desk Staff";
+    var staffList = ViewBag.StaffList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <a href="/FrontDesk" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Front Desk Staff</h1>
+            <p class="text-sm text-gray-500 mt-1">Team members in the Front Desk department</p>
+        </div>
+    </div>
+
+    @if (!staffList.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <p class="text-gray-400 text-sm">No staff members found in the Front Desk department.</p>
+            <p class="text-gray-400 text-xs mt-1">Staff can be assigned to departments from the Management panel.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var staff in staffList)
+            {
+                var user = (MyHotel.Web.Models.Entities.ApplicationUser)staff.User;
+                var role = (MyHotel.Web.Models.Entities.AppRole)staff.Role;
+                var isManager = (bool)staff.IsManager;
+
+                var roleColor = role switch
+                {
+                    MyHotel.Web.Models.Entities.AppRole.GeneralManager => "bg-purple-100 text-purple-700",
+                    MyHotel.Web.Models.Entities.AppRole.AssistantGM => "bg-indigo-100 text-indigo-700",
+                    MyHotel.Web.Models.Entities.AppRole.DepartmentManager => "bg-blue-100 text-blue-700",
+                    _ => "bg-gray-100 text-gray-700"
+                };
+
+                var roleName = role switch
+                {
+                    MyHotel.Web.Models.Entities.AppRole.GeneralManager => "General Manager",
+                    MyHotel.Web.Models.Entities.AppRole.AssistantGM => "Assistant GM",
+                    MyHotel.Web.Models.Entities.AppRole.DepartmentManager => "Dept. Manager",
+                    _ => "Employee"
+                };
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-700 shrink-0">
+                            @(user.FirstName.Length > 0 ? user.FirstName.Substring(0, 1) : "?")@(user.LastName.Length > 0 ? user.LastName.Substring(0, 1) : "")
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-sm font-semibold text-gray-900">@user.FullName</h3>
+                                @if (isManager)
+                                {
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Manager</span>
+                                }
+                            </div>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @roleColor mt-1">@roleName</span>
+                            @if (!string.IsNullOrWhiteSpace(user.Email))
+                            {
+                                <p class="text-xs text-gray-500 mt-2 truncate">@user.Email</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(user.Phone))
+                            {
+                                <p class="text-xs text-gray-500 truncate">@user.Phone</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

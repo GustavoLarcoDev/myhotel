@@ -1,0 +1,149 @@
+@{
+    ViewData["Title"] = "Administrative";
+    var monthlyExpenses = (decimal)(ViewBag.MonthlyExpenses ?? 0m);
+    var budgetTotal = (decimal)(ViewBag.BudgetTotal ?? 0m);
+    var budgetVariance = (decimal)(ViewBag.BudgetVariance ?? 0m);
+    var evaluationsCount = (int)(ViewBag.EvaluationsCount ?? 0);
+    var vendorsCount = (int)(ViewBag.VendorsCount ?? 0);
+
+    var varianceColor = budgetVariance >= 0 ? "text-green-600" : "text-red-600";
+    var varianceLabel = budgetVariance >= 0 ? "Under Budget" : "Over Budget";
+}
+
+<div class="space-y-8">
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Administrative</h1>
+        <p class="text-sm text-gray-500 mt-1">Department overview and quick access to administrative modules</p>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Monthly Expenses -->
+        <a href="/Budget" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Monthly Expenses</p>
+                    <p class="text-2xl font-bold text-gray-900">$@monthlyExpenses.ToString("N2")</p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Budget Variance -->
+        <a href="/Budget" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 @(budgetVariance >= 0 ? "bg-green-50" : "bg-red-50") rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 @(budgetVariance >= 0 ? "text-green-600" : "text-red-600")" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Budget Variance</p>
+                    <p class="text-2xl font-bold @varianceColor">
+                        @(budgetVariance >= 0 ? "+" : "")$@Math.Abs(budgetVariance).ToString("N2")
+                    </p>
+                    <p class="text-xs @varianceColor mt-0.5">@varianceLabel</p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Evaluations -->
+        <a href="/Evaluations" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Evaluations</p>
+                    <p class="text-2xl font-bold text-gray-900">@evaluationsCount</p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Vendors -->
+        <a href="/Directory?tab=vendors" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Vendors</p>
+                    <p class="text-2xl font-bold text-gray-900">@vendorsCount</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Administrative Modules</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Budget -->
+            <a href="/Budget" class="flex items-center gap-4 p-4 bg-blue-50 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Budget & Expenses</span>
+                    <p class="text-xs text-blue-500 mt-0.5">Manage expenses and budget planning</p>
+                </div>
+            </a>
+
+            <!-- Reports -->
+            <a href="/Reports" class="flex items-center gap-4 p-4 bg-green-50 rounded-xl text-green-700 hover:bg-green-100 transition-colors">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Reports</span>
+                    <p class="text-xs text-green-500 mt-0.5">Comprehensive operational reports</p>
+                </div>
+            </a>
+
+            <!-- Evaluations -->
+            <a href="/Evaluations" class="flex items-center gap-4 p-4 bg-amber-50 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors">
+                <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Evaluations</span>
+                    <p class="text-xs text-amber-500 mt-0.5">Employee performance evaluations</p>
+                </div>
+            </a>
+
+            <!-- Directory -->
+            <a href="/Directory" class="flex items-center gap-4 p-4 bg-purple-50 rounded-xl text-purple-700 hover:bg-purple-100 transition-colors">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Directory</span>
+                    <p class="text-xs text-purple-500 mt-0.5">Staff and vendor contacts</p>
+                </div>
+            </a>
+
+            <!-- Meetings -->
+            <a href="/Meetings" class="flex items-center gap-4 p-4 bg-indigo-50 rounded-xl text-indigo-700 hover:bg-indigo-100 transition-colors">
+                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Meetings</span>
+                    <p class="text-xs text-indigo-500 mt-0.5">Schedule and track meetings</p>
+                </div>
+            </a>
+
+            <!-- Staff -->
+            <a href="/Administrative/Staff" class="flex items-center gap-4 p-4 bg-teal-50 rounded-xl text-teal-700 hover:bg-teal-100 transition-colors">
+                <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </div>
+                <div>
+                    <span class="font-medium text-sm">Department Staff</span>
+                    <p class="text-xs text-teal-500 mt-0.5">View administrative team members</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>

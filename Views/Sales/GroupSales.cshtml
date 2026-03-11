@@ -1,0 +1,141 @@
+@model List<GroupSale>
+@{
+    ViewData["Title"] = "Group Sales";
+    var currentStatus = (string)ViewBag.CurrentStatus;
+    var currentSearch = (string)ViewBag.CurrentSearch ?? "";
+    var totalCount = (int)ViewBag.TotalCount;
+    var tentativeCount = (int)ViewBag.TentativeCount;
+    var confirmedCount = (int)ViewBag.ConfirmedCount;
+    var cancelledCount = (int)ViewBag.CancelledCount;
+    var completedCount = (int)ViewBag.CompletedCount;
+}
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <a href="@Url.Action("Index")" class="text-sm text-blue-600 hover:underline">&larr; Back to Sales</a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">Group Sales</h1>
+            <div class="flex items-center gap-3 mt-2">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Total: @totalCount</span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Tentative: @tentativeCount</span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Confirmed: @confirmedCount</span>
+            </div>
+        </div>
+        <a href="@Url.Action("CreateGroupSale")" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">
+            + New Group Sale
+        </a>
+    </div>
+
+    <!-- Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <form method="get" asp-action="GroupSales" class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <input type="hidden" name="status" value="@currentStatus" />
+            <input type="text" name="search" value="@currentSearch" placeholder="Search by group name, contact name, or email..."
+                   class="w-full sm:w-80 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+            <button type="submit" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Search</button>
+            @if (!string.IsNullOrWhiteSpace(currentSearch))
+            {
+                <a href="@Url.Action("GroupSales", new { status = currentStatus })" class="text-xs text-gray-500 hover:text-gray-700">Clear</a>
+            }
+        </form>
+    </div>
+
+    <!-- Status Filter Tabs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-1 flex-wrap">
+            @{
+                var tabs = new[] {
+                    ("all", "All", totalCount),
+                    ("tentative", "Tentative", tentativeCount),
+                    ("confirmed", "Confirmed", confirmedCount),
+                    ("cancelled", "Cancelled", cancelledCount),
+                    ("completed", "Completed", completedCount)
+                };
+            }
+            @foreach (var (val, label, count) in tabs)
+            {
+                var isActive = currentStatus == val;
+                <a href="@Url.Action("GroupSales", new { status = val, search = currentSearch })"
+                   class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors @(isActive ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")">
+                    @label <span class="ml-1 text-xs">@count</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    @if (!Model.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <p class="text-gray-400 text-sm">No group sales found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-100">
+                            <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Group</th>
+                            <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Contact</th>
+                            <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Dates</th>
+                            <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Rooms</th>
+                            <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Revenue</th>
+                            <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Status</th>
+                            <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Created</th>
+                            <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wide px-6 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach (var gs in Model)
+                        {
+                            var statusClass = gs.Status switch
+                            {
+                                "tentative" => "bg-yellow-100 text-yellow-700",
+                                "confirmed" => "bg-green-100 text-green-700",
+                                "cancelled" => "bg-red-100 text-red-700",
+                                "completed" => "bg-blue-100 text-blue-700",
+                                _ => "bg-gray-100 text-gray-600"
+                            };
+
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-3">
+                                    <span class="text-sm font-medium text-gray-800">@gs.GroupName</span>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <div class="text-sm text-gray-600">@(gs.ContactName ?? "-")</div>
+                                    @if (!string.IsNullOrWhiteSpace(gs.ContactEmail))
+                                    {
+                                        <div class="text-xs text-gray-400">@gs.ContactEmail</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(gs.ContactPhone))
+                                    {
+                                        <div class="text-xs text-gray-400">@gs.ContactPhone</div>
+                                    }
+                                </td>
+                                <td class="px-6 py-3 text-sm text-gray-600">
+                                    <div>@gs.CheckIn.ToString("MMM dd, yyyy")</div>
+                                    <div class="text-xs text-gray-400">to @gs.CheckOut.ToString("MMM dd, yyyy")</div>
+                                </td>
+                                <td class="px-6 py-3 text-sm text-gray-600 text-center">@gs.RoomsBlocked</td>
+                                <td class="px-6 py-3 text-sm font-medium text-gray-800 text-right">$@gs.Revenue.ToString("N0")</td>
+                                <td class="px-6 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @statusClass">@gs.Status</span>
+                                </td>
+                                <td class="px-6 py-3 text-xs text-gray-400">
+                                    <div>@gs.CreatedAt.ToString("MMM dd, yyyy")</div>
+                                    <div>by @gs.CreatedBy</div>
+                                </td>
+                                <td class="px-6 py-3 text-center">
+                                    <a href="@Url.Action("EditGroupSale", new { id = gs.Id })" class="text-xs text-blue-600 hover:underline font-medium">Edit</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

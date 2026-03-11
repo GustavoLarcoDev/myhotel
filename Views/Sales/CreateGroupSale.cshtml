@@ -1,0 +1,93 @@
+@{
+    ViewData["Title"] = "New Group Sale";
+}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div>
+        <a href="@Url.Action("GroupSales")" class="text-sm text-blue-600 hover:underline">&larr; Back to Group Sales</a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-2">New Group Sale</h1>
+        <p class="text-sm text-gray-500 mt-1">Create a new group booking</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        @Html.AntiForgeryToken()
+
+        <!-- Group Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Group Information</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Group Name *</label>
+                    <input type="text" name="groupName" required placeholder="e.g. Johnson Wedding, Tech Conference 2026"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Contact Name</label>
+                    <input type="text" name="contactName" placeholder="Full name"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Contact Email</label>
+                    <input type="email" name="contactEmail" placeholder="email@example.com"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Contact Phone</label>
+                    <input type="text" name="contactPhone" placeholder="Phone number"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Booking Details</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Check-In *</label>
+                    <input type="date" name="checkIn" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Check-Out *</label>
+                    <input type="date" name="checkOut" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Rooms Blocked *</label>
+                    <input type="number" name="roomsBlocked" required min="1" placeholder="0"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Revenue ($) *</label>
+                    <input type="number" name="revenue" required min="0" step="0.01" placeholder="0.00"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                    <select name="status"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="tentative">Tentative</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Notes</label>
+                    <textarea name="notes" rows="3" placeholder="Additional details about this group sale..."
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                Create Group Sale
+            </button>
+            <a href="@Url.Action("GroupSales")" class="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>

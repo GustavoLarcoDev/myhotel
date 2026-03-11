@@ -1,0 +1,156 @@
+@model CashReport
+@{
+    ViewData["Title"] = "Edit Cash Report";
+}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <a href="/FrontDesk/CashReports" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">Edit Cash Report</h1>
+    </div>
+
+    <!-- Meta -->
+    <div class="flex items-center gap-4 text-xs text-gray-400">
+        <span>Created by @Model.CreatedBy</span>
+        <span>@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="post" asp-action="EditCashReport">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <div class="space-y-5">
+                <!-- Date & Shift -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                        <input type="date" name="date" value="@Model.Date" required
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
+                        <select name="shift" required
+                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            @{
+                                var shifts = new[] { ("AM", "AM"), ("PM", "PM"), ("Night", "Night") };
+                            }
+                            @foreach (var (val, label) in shifts)
+                            {
+                                if (Model.Shift == val)
+                                {
+                                    <option value="@val" selected="selected">@label</option>
+                                }
+                                else
+                                {
+                                    <option value="@val">@label</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Opening & Closing Balance -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input type="number" name="openingBalance" step="0.01" value="@Model.OpeningBalance" required id="openingBalance"
+                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Closing Balance *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input type="number" name="closingBalance" step="0.01" value="@Model.ClosingBalance" required id="closingBalance"
+                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash In & Cash Out -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cash In</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input type="number" name="cashIn" step="0.01" value="@Model.CashIn" id="cashIn"
+                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cash Out</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input type="number" name="cashOut" step="0.01" value="@Model.CashOut" id="cashOut"
+                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credit Card Total -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Credit Card Total</label>
+                    <div class="relative max-w-xs">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                        <input type="number" name="creditCardTotal" step="0.01" value="@Model.CreditCardTotal"
+                               class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                    </div>
+                </div>
+
+                <!-- Auto-calculated Variance Preview -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-600">Estimated Variance</span>
+                        <span id="variancePreview" class="text-lg font-bold @(Model.Variance < 0 ? "text-red-600" : Model.Variance > 0 ? "text-green-600" : "text-gray-500")">
+                            @(Model.Variance >= 0 ? "+" : "")$@Model.Variance.ToString("N2")
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Variance = Closing Balance - (Opening Balance + Cash In - Cash Out)</p>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea name="notes" rows="3" placeholder="Any notes about this shift..."
+                              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none">@Model.Notes</textarea>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex items-center gap-3 pt-2">
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        Save Changes
+                    </button>
+                    <a href="/FrontDesk/CashReports" class="px-6 py-2.5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function calcVariance() {
+        var opening = parseFloat(document.getElementById('openingBalance').value) || 0;
+        var closing = parseFloat(document.getElementById('closingBalance').value) || 0;
+        var cashIn = parseFloat(document.getElementById('cashIn').value) || 0;
+        var cashOut = parseFloat(document.getElementById('cashOut').value) || 0;
+        var expected = opening + cashIn - cashOut;
+        var variance = closing - expected;
+        var el = document.getElementById('variancePreview');
+        el.textContent = (variance >= 0 ? '+' : '') + '$' + variance.toFixed(2);
+        el.className = 'text-lg font-bold ' + (variance < 0 ? 'text-red-600' : variance > 0 ? 'text-green-600' : 'text-gray-500');
+    }
+    document.querySelectorAll('#openingBalance, #closingBalance, #cashIn, #cashOut').forEach(function(el) {
+        el.addEventListener('input', calcVariance);
+    });
+</script>
+}

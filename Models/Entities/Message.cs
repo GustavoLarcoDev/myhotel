@@ -8,6 +8,7 @@ public class Message
     public string Body { get; set; } = "";
     public string FromUserId { get; set; } = "";
     public string? ToUserId { get; set; }
+    public int? DepartmentId { get; set; }
     public bool IsAnnouncement { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -15,4 +16,5 @@ public class Message
     public Hotel Hotel { get; set; } = null!;
     public ApplicationUser FromUser { get; set; } = null!;
     public ApplicationUser? ToUser { get; set; }
+    public Department? Department { get; set; }
 }

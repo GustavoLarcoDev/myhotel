@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -12,11 +13,16 @@ public class ComplaintsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ComplaintsController(ApplicationDbContext db, HotelContextService hotelContext)
+    public ComplaintsController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(string status = "all")
@@ -90,6 +96,28 @@ public class ComplaintsController : Controller
 
         _db.Complaints.Add(complaint);
         await _db.SaveChangesAsync();
+
+        // Notify GMs about the new complaint
+        var user = await _userManager.GetUserAsync(User);
+        var gmUserIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value &&
+                        (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var gmId in gmUserIds)
+        {
+            if (gmId == user?.Id) continue;
+            await _notifications.CreateAsync(
+                hotelId.Value,
+                gmId,
+                $"New Complaint: {complaint.GuestName}",
+                complaint.Description.Length > 50 ? complaint.Description.Substring(0, 50) + "..." : complaint.Description,
+                "/Complaints",
+                "warning");
+        }
+
         TempData["Success"] = "Complaint filed.";
         return RedirectToAction("Index");
     }
@@ -126,6 +154,28 @@ public class ComplaintsController : Controller
             complaint.ResolvedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+
+        // Notify GMs about the status change
+        var user = await _userManager.GetUserAsync(User);
+        var gmUserIds = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value &&
+                        (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var gmId in gmUserIds)
+        {
+            if (gmId == user?.Id) continue;
+            await _notifications.CreateAsync(
+                hotelId.Value,
+                gmId,
+                $"Complaint Updated: {complaint.GuestName}",
+                $"Status: {complaint.Status}",
+                "/Complaints",
+                "info");
+        }
+
         TempData["Success"] = "Complaint updated.";
         return RedirectToAction("Index");
     }

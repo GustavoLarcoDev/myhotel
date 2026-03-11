@@ -44,6 +44,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
 
+    // New modules
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<GroupSale> GroupSales => Set<GroupSale>();
+    public DbSet<CashReport> CashReports => Set<CashReport>();
+    public DbSet<CleaningRequest> CleaningRequests => Set<CleaningRequest>();
+
     // Finance
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<Expense> Expenses => Set<Expense>();

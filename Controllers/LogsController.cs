@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -13,11 +14,16 @@ public class LogsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public LogsController(ApplicationDbContext db, HotelContextService hotelContext)
+    public LogsController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -81,6 +87,16 @@ public class LogsController : Controller
 
         _db.Logs.Add(log);
         await _db.SaveChangesAsync();
+
+        // Notify the entire hotel about the new log
+        var user = await _userManager.GetUserAsync(User);
+        await _notifications.NotifyHotelAsync(
+            hotelId.Value,
+            $"New Log: {category}",
+            message.Length > 50 ? message.Substring(0, 50) + "..." : message,
+            "/Logs",
+            "info",
+            user?.Id);
 
         TempData["Success"] = "Log entry added successfully.";
         return RedirectToAction("Index");

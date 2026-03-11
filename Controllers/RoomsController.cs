@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -12,11 +13,16 @@ public class RoomsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public RoomsController(ApplicationDbContext db, HotelContextService hotelContext)
+    public RoomsController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(string floor = "all", string status = "all")
@@ -109,6 +115,23 @@ public class RoomsController : Controller
 
         room.Status = status;
         await _db.SaveChangesAsync();
+
+        // Notify Housekeeping department about room status change
+        var hkDept = await _db.Departments
+            .FirstOrDefaultAsync(d => d.HotelId == hotelId.Value &&
+                d.Name.ToLower().Contains("housekeeping"));
+        if (hkDept != null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            await _notifications.NotifyDepartmentAsync(
+                hotelId.Value, hkDept.Id,
+                $"Room {room.Number} Status: {status}",
+                null,
+                "/Rooms",
+                "info",
+                user?.Id);
+        }
+
         TempData["Success"] = $"Room {room.Number} status updated to {status}.";
         return RedirectToAction("Index");
     }

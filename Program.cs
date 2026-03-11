@@ -53,6 +53,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<HotelContextService>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<ImpersonationService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddSignalR();
 
 // MVC with global CSRF protection
 builder.Services.AddControllersWithViews(options =>
@@ -95,7 +97,7 @@ using (var scope = app.Services.CreateScope())
         db.UserHotelRoles.Add(new UserHotelRole { UserId = admin.Id, HotelId = element.Id, Role = AppRole.Admin });
 
         // ── Departments for both hotels ──
-        var deptNames = new[] { "Front Desk", "Housekeeping", "Maintenance", "Security", "Food & Beverage" };
+        var deptNames = new[] { "Sales", "Engineering", "Front Desk", "Housekeeping", "Administrative" };
         var aloftDepts = new Dictionary<string, Department>();
         var elementDepts = new Dictionary<string, Department>();
         foreach (var name in deptNames)
@@ -192,23 +194,23 @@ using (var scope = app.Services.CreateScope())
         db.UserHotelRoles.Add(new UserHotelRole { UserId = elena.Id, HotelId = aloft.Id, Role = AppRole.Employee });
         db.UserDepartments.Add(new UserDepartment { UserId = elena.Id, DepartmentId = aloftDepts["Housekeeping"].Id, IsManager = false });
 
-        // Maintenance Manager: Roberto Morales
+        // Engineering Manager: Roberto Morales
         var roberto = new ApplicationUser { UserName = "roberto@myhotel.com", Email = "roberto@myhotel.com", FirstName = "Roberto", LastName = "Morales", Phone = "5125550030", EmailConfirmed = true };
         await userManager.CreateAsync(roberto, "roberto123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = roberto.Id, HotelId = aloft.Id, Role = AppRole.DepartmentManager });
-        db.UserDepartments.Add(new UserDepartment { UserId = roberto.Id, DepartmentId = aloftDepts["Maintenance"].Id, IsManager = true });
+        db.UserDepartments.Add(new UserDepartment { UserId = roberto.Id, DepartmentId = aloftDepts["Engineering"].Id, IsManager = true });
 
-        // Maintenance Employees
+        // Engineering Employees
         var miguel = new ApplicationUser { UserName = "miguel@myhotel.com", Email = "miguel@myhotel.com", FirstName = "Miguel", LastName = "Castillo", Phone = "5125550031", EmailConfirmed = true };
         await userManager.CreateAsync(miguel, "miguel123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = miguel.Id, HotelId = aloft.Id, Role = AppRole.Employee });
-        db.UserDepartments.Add(new UserDepartment { UserId = miguel.Id, DepartmentId = aloftDepts["Maintenance"].Id, IsManager = false });
+        db.UserDepartments.Add(new UserDepartment { UserId = miguel.Id, DepartmentId = aloftDepts["Engineering"].Id, IsManager = false });
 
-        // Security Employee: David Reyes
+        // Administrative Employee: David Reyes
         var david = new ApplicationUser { UserName = "david@myhotel.com", Email = "david@myhotel.com", FirstName = "David", LastName = "Reyes", Phone = "5125550040", EmailConfirmed = true };
         await userManager.CreateAsync(david, "david123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = david.Id, HotelId = aloft.Id, Role = AppRole.Employee });
-        db.UserDepartments.Add(new UserDepartment { UserId = david.Id, DepartmentId = aloftDepts["Security"].Id, IsManager = false });
+        db.UserDepartments.Add(new UserDepartment { UserId = david.Id, DepartmentId = aloftDepts["Administrative"].Id, IsManager = false });
 
         // ══════════════════════════
         // ── ELEMENT HOTEL STAFF ──
@@ -248,23 +250,23 @@ using (var scope = app.Services.CreateScope())
         db.UserHotelRoles.Add(new UserHotelRole { UserId = isabela.Id, HotelId = element.Id, Role = AppRole.Employee });
         db.UserDepartments.Add(new UserDepartment { UserId = isabela.Id, DepartmentId = elementDepts["Housekeeping"].Id, IsManager = false });
 
-        // Maintenance Manager: Fernando Ortiz
+        // Engineering Manager: Fernando Ortiz
         var fernando = new ApplicationUser { UserName = "fernando@myhotel.com", Email = "fernando@myhotel.com", FirstName = "Fernando", LastName = "Ortiz", Phone = "5125550130", EmailConfirmed = true };
         await userManager.CreateAsync(fernando, "fernando123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = fernando.Id, HotelId = element.Id, Role = AppRole.DepartmentManager });
-        db.UserDepartments.Add(new UserDepartment { UserId = fernando.Id, DepartmentId = elementDepts["Maintenance"].Id, IsManager = true });
+        db.UserDepartments.Add(new UserDepartment { UserId = fernando.Id, DepartmentId = elementDepts["Engineering"].Id, IsManager = true });
 
-        // Maintenance Employee
+        // Engineering Employee
         var jorge = new ApplicationUser { UserName = "jorge@myhotel.com", Email = "jorge@myhotel.com", FirstName = "Jorge", LastName = "Sandoval", Phone = "5125550131", EmailConfirmed = true };
         await userManager.CreateAsync(jorge, "jorge123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = jorge.Id, HotelId = element.Id, Role = AppRole.Employee });
-        db.UserDepartments.Add(new UserDepartment { UserId = jorge.Id, DepartmentId = elementDepts["Maintenance"].Id, IsManager = false });
+        db.UserDepartments.Add(new UserDepartment { UserId = jorge.Id, DepartmentId = elementDepts["Engineering"].Id, IsManager = false });
 
-        // Security Employee: Alex Thompson
+        // Administrative Employee: Alex Thompson
         var alex = new ApplicationUser { UserName = "alex@myhotel.com", Email = "alex@myhotel.com", FirstName = "Alex", LastName = "Thompson", Phone = "5125550140", EmailConfirmed = true };
         await userManager.CreateAsync(alex, "alex123");
         db.UserHotelRoles.Add(new UserHotelRole { UserId = alex.Id, HotelId = element.Id, Role = AppRole.Employee });
-        db.UserDepartments.Add(new UserDepartment { UserId = alex.Id, DepartmentId = elementDepts["Security"].Id, IsManager = false });
+        db.UserDepartments.Add(new UserDepartment { UserId = alex.Id, DepartmentId = elementDepts["Administrative"].Id, IsManager = false });
 
         await db.SaveChangesAsync();
 
@@ -561,10 +563,10 @@ using (var scope = app.Services.CreateScope())
                 db.Schedules.Add(new Schedule { HotelId = aloft.Id, DepartmentId = aloftDepts["Housekeeping"].Id, EmployeeId = elena.Id, Date = day, StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(17, 0, 0), CreatedBy = "Rosa Garcia" });
             }
         }
-        // Aloft Maintenance
+        // Aloft Engineering
         for (int d = 0; d < 6; d++) // Mon-Sat
         {
-            db.Schedules.Add(new Schedule { HotelId = aloft.Id, DepartmentId = aloftDepts["Maintenance"].Id, EmployeeId = miguel.Id, Date = monday.AddDays(d), StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(15, 30, 0), CreatedBy = "Roberto Morales" });
+            db.Schedules.Add(new Schedule { HotelId = aloft.Id, DepartmentId = aloftDepts["Engineering"].Id, EmployeeId = miguel.Id, Date = monday.AddDays(d), StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(15, 30, 0), CreatedBy = "Roberto Morales" });
         }
         // Element FD schedules
         for (int d = 0; d < 7; d++)
@@ -771,5 +773,7 @@ app.MapGet("/health", async (ApplicationDbContext db) =>
         return Results.Json(new { status = "unhealthy", error = ex.Message }, statusCode: 503);
     }
 });
+
+app.MapHub<MyHotel.Web.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();

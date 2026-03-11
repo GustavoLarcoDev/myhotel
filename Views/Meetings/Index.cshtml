@@ -1,6 +1,8 @@
 @model List<Meeting>
 @{
-    ViewData["Title"] = "Meetings";
+    var currentDept = ViewBag.CurrentDept as string;
+    var deptName = ViewBag.DeptName as string;
+    ViewData["Title"] = deptName != null ? $"{deptName} Meetings" : "Meetings";
 
     var upcoming = (bool)ViewBag.Upcoming;
     var departments = ViewBag.Departments as List<Department> ?? new List<Department>();
@@ -12,15 +14,15 @@
 <!-- Header -->
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Meetings</h1>
+        <h1 class="text-2xl font-bold text-gray-900">@(deptName != null ? $"{deptName} Meetings" : "Meetings")</h1>
         <p class="text-sm text-gray-500 mt-1">@meetings.Count @(upcoming ? "upcoming" : "past") meeting@(meetings.Count != 1 ? "s" : "")</p>
     </div>
     <div class="flex items-center gap-2">
-        <a href="/Meetings?upcoming=true"
+        <a href="/Meetings?upcoming=true@(currentDept != null ? $"&dept={currentDept}" : "")"
            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(upcoming ? "bg-blue-600 text-white" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50")">
             Upcoming
         </a>
-        <a href="/Meetings?upcoming=false"
+        <a href="/Meetings?upcoming=false@(currentDept != null ? $"&dept={currentDept}" : "")"
            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(!upcoming ? "bg-blue-600 text-white" : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50")">
             Past
         </a>
@@ -36,6 +38,10 @@
             </div>
             <form method="post" action="/Meetings/Create" class="p-4 space-y-3" x-data="meetingForm()" x-init="init()">
                 @Html.AntiForgeryToken()
+                @if (currentDept != null)
+                {
+                    <input type="hidden" name="dept" value="@currentDept" />
+                }
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Title *</label>
                     <input type="text" name="title" required placeholder="Meeting title..."
@@ -68,7 +74,14 @@
                         <option value="0">All Departments</option>
                         @foreach (var dept in departments)
                         {
-                            <option value="@dept.Id">@dept.Name</option>
+                            if (currentDept != null && string.Equals(dept.Name, deptName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@dept.Id" selected>@dept.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@dept.Id">@dept.Name</option>
+                            }
                         }
                     </select>
                 </div>
@@ -144,6 +157,10 @@
                             <form method="post" action="/Meetings/Delete">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@meeting.Id" />
+                                @if (currentDept != null)
+                                {
+                                    <input type="hidden" name="dept" value="@currentDept" />
+                                }
                                 <button type="submit" onclick="return confirm('Delete this meeting?')"
                                     class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -179,6 +196,10 @@
                                     <form method="post" action="/Meetings/ToggleAttendance">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="attendeeId" value="@attendee.Id" />
+                                        @if (currentDept != null)
+                                        {
+                                            <input type="hidden" name="dept" value="@currentDept" />
+                                        }
                                         <button type="submit"
                                             class="w-5 h-5 rounded flex items-center justify-center border @(attendee.Attended ? "bg-green-500 border-green-500 text-white" : "border-gray-300 hover:border-green-400") transition-colors">
                                             @if (attendee.Attended)
@@ -208,6 +229,10 @@
                     <form x-show="showNotes" method="post" action="/Meetings/AddNotes" class="mt-2 flex gap-2">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@meeting.Id" />
+                        @if (currentDept != null)
+                        {
+                            <input type="hidden" name="dept" value="@currentDept" />
+                        }
                         <textarea name="notes" rows="2" placeholder="Add meeting notes..."
                             class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">@meeting.Notes</textarea>
                         <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors self-end">Save</button>
@@ -229,7 +254,13 @@
         function meetingForm() {
             return {
                 selectedDept: '0',
-                init() {},
+                init() {
+                    const select = this.$el.querySelector('select[name="departmentId"]');
+                    if (select && select.value !== '0') {
+                        this.selectedDept = select.value;
+                        this.filterAttendees();
+                    }
+                },
                 filterAttendees() {
                     const deptId = this.selectedDept;
                     document.querySelectorAll('.attendee-item').forEach(item => {

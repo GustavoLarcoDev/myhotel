@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -12,11 +13,16 @@ public class WorkOrdersController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly NotificationService _notifications;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public WorkOrdersController(ApplicationDbContext db, HotelContextService hotelContext)
+    public WorkOrdersController(ApplicationDbContext db, HotelContextService hotelContext,
+        NotificationService notifications, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _notifications = notifications;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(string status = "all", string search = "", string sort = "newest")
@@ -92,6 +98,23 @@ public class WorkOrdersController : Controller
 
         _db.WorkOrders.Add(workOrder);
         await _db.SaveChangesAsync();
+
+        // Notify engineering/maintenance department about the new work order
+        var engDept = await _db.Departments
+            .FirstOrDefaultAsync(d => d.HotelId == hotelId.Value &&
+                (d.Name.ToLower().Contains("engineering") || d.Name.ToLower().Contains("maintenance")));
+        if (engDept != null)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            await _notifications.NotifyDepartmentAsync(
+                hotelId.Value, engDept.Id,
+                $"New Work Order: {workOrder.Room ?? "General"}",
+                workOrder.Description.Length > 50 ? workOrder.Description.Substring(0, 50) + "..." : workOrder.Description,
+                "/WorkOrders",
+                workOrder.Priority == "urgent" ? "urgent" : "info",
+                user?.Id);
+        }
+
         TempData["Success"] = "Work order created.";
         return RedirectToAction("Index");
     }
@@ -120,6 +143,24 @@ public class WorkOrdersController : Controller
         }
 
         await _db.SaveChangesAsync();
+
+        // Notify GMs when a work order status changes to completed or other significant statuses
+        if (status == "completed" || status == "in-progress")
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var gmIds = await _db.UserHotelRoles
+                .Where(r => r.HotelId == hotelId.Value && (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
+                .Select(r => r.UserId).Distinct().ToListAsync();
+            foreach (var gmId in gmIds)
+            {
+                if (gmId == user?.Id) continue;
+                await _notifications.CreateAsync(hotelId.Value, gmId,
+                    $"Work Order {status}: {workOrder.Room ?? "General"}",
+                    workOrder.Description.Length > 50 ? workOrder.Description.Substring(0, 50) + "..." : workOrder.Description,
+                    "/WorkOrders", status == "completed" ? "success" : "info");
+            }
+        }
+
         TempData["Success"] = "Status updated.";
         return RedirectToAction("Index");
     }
