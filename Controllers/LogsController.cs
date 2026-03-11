@@ -71,25 +71,24 @@ public class LogsController : Controller
 
     [HttpPost("Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string category, string message, string createdBy)
+    public async Task<IActionResult> Create(string category, string message)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
+
+        var user = await _userManager.GetUserAsync(User);
 
         var log = new Log
         {
             HotelId = hotelId.Value,
             Category = category,
             Message = message,
-            CreatedBy = createdBy,
+            CreatedBy = user?.FullName ?? "Unknown",
             CreatedAt = DateTime.UtcNow
         };
 
         _db.Logs.Add(log);
         await _db.SaveChangesAsync();
-
-        // Notify the entire hotel about the new log
-        var user = await _userManager.GetUserAsync(User);
         await _notifications.NotifyHotelAsync(
             hotelId.Value,
             $"New Log: {category}",
@@ -104,16 +103,17 @@ public class LogsController : Controller
 
     [HttpPost("MarkAsRead")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkAsRead(int id, string readBy)
+    public async Task<IActionResult> MarkAsRead(int id)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
 
+        var user = await _userManager.GetUserAsync(User);
         var log = await _db.Logs.FirstOrDefaultAsync(l => l.Id == id && l.HotelId == hotelId.Value);
         if (log != null)
         {
             log.IsRead = true;
-            log.ReadBy = readBy;
+            log.ReadBy = user?.FullName ?? "Unknown";
             log.ReadAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             TempData["Success"] = "Log marked as read.";

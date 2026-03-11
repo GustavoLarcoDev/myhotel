@@ -349,48 +349,26 @@
                         </button>
 
                         <!-- Stock Number -->
-                        <p class="text-3xl font-extrabold @stockColor leading-none my-1">@item.Quantity</p>
+                        <p id="qty-@item.Id" class="text-3xl font-extrabold @stockColor leading-none my-1" data-min="@item.MinStock">@item.Quantity</p>
                         <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">@item.Unit</p>
 
-                        <!-- Down Arrow - Quick Remove 1 -->
-                        @if (item.Quantity > 0)
-                        {
-                            <form method="post" action="/Inventory/RemoveStock" class="inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="itemId" value="@item.Id" />
-                                <input type="hidden" name="quantity" value="1" />
-                                <input type="hidden" name="type" value="@currentType" />
-                                @if (ViewBag.CurrentDept != null)
-                                {
-                                    <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-                                }
-                                <button type="submit"
-                                        class="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 hover:text-green-600 transition-colors flex items-center justify-center mx-auto mt-1 text-gray-400">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <div class="w-9 h-9 rounded-full border-2 border-gray-100 flex items-center justify-center mx-auto mt-1 text-gray-200 opacity-30 cursor-not-allowed">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                        }
+                        <!-- Down Arrow - Quick Remove 1 (AJAX) -->
+                        <button id="down-btn-@item.Id"
+                                onclick="removeStockAjax(@item.Id)"
+                                class="w-9 h-9 rounded-full border-2 @(item.Quantity > 0 ? "border-gray-200 hover:border-green-500 hover:bg-green-50 hover:text-green-600 text-gray-400" : "border-gray-100 text-gray-200 opacity-30 cursor-not-allowed") transition-colors flex items-center justify-center mx-auto mt-1"
+                                @(item.Quantity <= 0 ? "disabled" : "")>
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
 
                         <!-- Low Stock Warning -->
-                        @if (isLow)
-                        {
-                            <p class="text-xs text-red-500 font-semibold mt-2 flex items-center justify-center gap-1">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                </svg>
-                                Low stock (min: @item.MinStock)
-                            </p>
-                        }
+                        <p id="low-warn-@item.Id" class="text-xs text-red-500 font-semibold mt-2 items-center justify-center gap-1 @(isLow ? "flex" : "hidden")">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            Low stock (min: @item.MinStock)
+                        </p>
 
                         <!-- Location -->
                         @if (!string.IsNullOrEmpty(item.Location))
@@ -398,49 +376,30 @@
                             <p class="text-[10px] text-gray-400 mt-1 truncate" title="@item.Location">@item.Location</p>
                         }
 
-                        <!-- Add Stock Dropdown (details element) -->
+                        <!-- Add Stock Dropdown (AJAX) -->
                         <details id="add-@item.Id" class="text-left mt-3">
                             <summary class="hidden"></summary>
                             <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
-                                <form method="post" action="/Inventory/AddStock">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="itemId" value="@item.Id" />
-                                    <input type="hidden" name="type" value="@currentType" />
-                                    @if (ViewBag.CurrentDept != null)
-                                    {
-                                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-                                    }
-                                    <div class="space-y-2">
-                                        <input type="number" name="quantity" value="1" min="1" required
-                                               class="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                               placeholder="Qty" />
-                                        <input type="text" name="notes" placeholder="Notes (optional)"
-                                               class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                        <button type="submit"
-                                                class="w-full bg-blue-600 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-700 transition-colors">
-                                            Add Stock
-                                        </button>
-                                    </div>
-                                </form>
-                                <form method="post" action="/Inventory/AdjustStock">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="itemId" value="@item.Id" />
-                                    <input type="hidden" name="type" value="@currentType" />
-                                    @if (ViewBag.CurrentDept != null)
-                                    {
-                                        <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-                                    }
-                                    <div class="flex gap-1">
-                                        <input type="number" name="newQuantity" value="@item.Quantity" min="0" required
-                                               class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                               placeholder="Exact count" />
-                                        <input type="hidden" name="notes" value="Physical count adjustment" />
-                                        <button type="submit"
-                                                class="bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-amber-600 transition-colors whitespace-nowrap">
-                                            Set Exact
-                                        </button>
-                                    </div>
-                                </form>
+                                <div class="space-y-2">
+                                    <input type="number" id="add-qty-@item.Id" value="1" min="1"
+                                           class="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="Qty" />
+                                    <input type="text" id="add-notes-@item.Id" placeholder="Notes (optional)"
+                                           class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <button onclick="addStockAjax(@item.Id)"
+                                            class="w-full bg-blue-600 text-white text-xs font-medium py-1.5 rounded hover:bg-blue-700 transition-colors">
+                                        Add Stock
+                                    </button>
+                                </div>
+                                <div class="flex gap-1">
+                                    <input type="number" id="adjust-qty-@item.Id" value="@item.Quantity" min="0"
+                                           class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                           placeholder="Exact count" />
+                                    <button onclick="adjustStockAjax(@item.Id)"
+                                            class="bg-amber-500 text-white text-xs font-medium px-2 py-1 rounded hover:bg-amber-600 transition-colors whitespace-nowrap">
+                                        Set Exact
+                                    </button>
+                                </div>
                             </div>
                         </details>
 
@@ -558,4 +517,115 @@
             </div>
         </div>
     </details>
+}
+
+@section Scripts {
+<script>
+    const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+    function updateCard(itemId, data) {
+        const qtyEl = document.getElementById('qty-' + itemId);
+        const downBtn = document.getElementById('down-btn-' + itemId);
+        const lowWarn = document.getElementById('low-warn-' + itemId);
+        const adjustInput = document.getElementById('adjust-qty-' + itemId);
+
+        if (qtyEl) {
+            qtyEl.textContent = data.newQuantity;
+            qtyEl.className = qtyEl.className.replace(/text-(green|red)-\d+/g, '');
+            if (data.isLow) {
+                qtyEl.classList.add('text-red-500');
+            } else {
+                qtyEl.classList.add('text-green-600');
+            }
+            qtyEl.style.transform = 'scale(1.2)';
+            setTimeout(() => qtyEl.style.transform = 'scale(1)', 200);
+        }
+
+        if (downBtn) {
+            if (data.newQuantity <= 0) {
+                downBtn.disabled = true;
+                downBtn.className = downBtn.className.replace(/border-gray-200|hover:border-green-500|hover:bg-green-50|hover:text-green-600|text-gray-400/g, '');
+                downBtn.classList.add('border-gray-100', 'text-gray-200', 'opacity-30', 'cursor-not-allowed');
+            } else {
+                downBtn.disabled = false;
+                downBtn.classList.remove('border-gray-100', 'text-gray-200', 'opacity-30', 'cursor-not-allowed');
+                downBtn.classList.add('border-gray-200', 'text-gray-400');
+            }
+        }
+
+        if (lowWarn) {
+            lowWarn.classList.toggle('hidden', !data.isLow);
+            lowWarn.classList.toggle('flex', data.isLow);
+        }
+
+        if (adjustInput) {
+            adjustInput.value = data.newQuantity;
+        }
+    }
+
+    async function removeStockAjax(itemId) {
+        const btn = document.getElementById('down-btn-' + itemId);
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch('/Inventory/RemoveStockAjax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+                body: JSON.stringify({ itemId: itemId, quantity: 1 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateCard(itemId, data);
+            }
+        } catch (e) {
+            console.error('RemoveStock error:', e);
+        }
+        if (btn && !btn.classList.contains('cursor-not-allowed')) btn.disabled = false;
+    }
+
+    async function addStockAjax(itemId) {
+        const qtyInput = document.getElementById('add-qty-' + itemId);
+        const notesInput = document.getElementById('add-notes-' + itemId);
+        const qty = parseInt(qtyInput?.value) || 1;
+        const notes = notesInput?.value || '';
+
+        try {
+            const res = await fetch('/Inventory/AddStockAjax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+                body: JSON.stringify({ itemId: itemId, quantity: qty, notes: notes })
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateCard(itemId, data);
+                if (qtyInput) qtyInput.value = 1;
+                if (notesInput) notesInput.value = '';
+                const details = document.getElementById('add-' + itemId);
+                if (details) details.open = false;
+            }
+        } catch (e) {
+            console.error('AddStock error:', e);
+        }
+    }
+
+    async function adjustStockAjax(itemId) {
+        const qtyInput = document.getElementById('adjust-qty-' + itemId);
+        const newQty = parseInt(qtyInput?.value) || 0;
+
+        try {
+            const res = await fetch('/Inventory/AdjustStockAjax', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+                body: JSON.stringify({ itemId: itemId, quantity: newQty, notes: 'Physical count adjustment' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateCard(itemId, data);
+                const details = document.getElementById('add-' + itemId);
+                if (details) details.open = false;
+            }
+        } catch (e) {
+            console.error('AdjustStock error:', e);
+        }
+    }
+</script>
 }

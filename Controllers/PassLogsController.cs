@@ -60,10 +60,12 @@ public class PassLogsController : Controller
 
     [HttpPost("Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string shiftFrom, string shiftTo, string message, string priority, string createdBy)
+    public async Task<IActionResult> Create(string shiftFrom, string shiftTo, string message, string priority)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
+
+        var user = await _userManager.GetUserAsync(User);
 
         var passLog = new PassLog
         {
@@ -72,15 +74,12 @@ public class PassLogsController : Controller
             ShiftTo = shiftTo,
             Message = message,
             Priority = priority,
-            CreatedBy = createdBy,
+            CreatedBy = user?.FullName ?? "Unknown",
             CreatedAt = DateTime.UtcNow
         };
 
         _db.PassLogs.Add(passLog);
         await _db.SaveChangesAsync();
-
-        // Notify the hotel about the new pass log for the incoming shift
-        var user = await _userManager.GetUserAsync(User);
         await _notifications.NotifyHotelAsync(
             hotelId.Value,
             $"New Pass Log: {shiftFrom} to {shiftTo}",
@@ -97,16 +96,17 @@ public class PassLogsController : Controller
 
     [HttpPost("MarkAsRead")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkAsRead(int id, string readBy)
+    public async Task<IActionResult> MarkAsRead(int id)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
 
+        var user = await _userManager.GetUserAsync(User);
         var passLog = await _db.PassLogs.FirstOrDefaultAsync(p => p.Id == id && p.HotelId == hotelId.Value);
         if (passLog != null)
         {
             passLog.IsRead = true;
-            passLog.ReadBy = readBy;
+            passLog.ReadBy = user?.FullName ?? "Unknown";
             passLog.ReadAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             TempData["Success"] = "Pass log marked as read.";

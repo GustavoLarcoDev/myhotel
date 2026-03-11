@@ -1,6 +1,8 @@
+@using MyHotel.Web.Models.Entities
 @{
-    ViewData["Title"] = "New Cash Report";
+    ViewData["Title"] = "New Cash Log";
     var todayDate = (string)ViewBag.TodayDate ?? DateTime.UtcNow.ToString("yyyy-MM-dd");
+    var lastReport = ViewBag.LastReport as CashReport;
 }
 
 <div class="max-w-2xl mx-auto space-y-6">
@@ -9,129 +11,280 @@
         <a href="/FrontDesk/CashReports" class="text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <h1 class="text-2xl font-bold text-gray-900">New Cash Report</h1>
+        <h1 class="text-2xl font-bold text-gray-900">New Cash Log</h1>
     </div>
 
-    <!-- Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <form method="post" asp-action="CreateCashReport">
-            @Html.AntiForgeryToken()
-
-            <div class="space-y-5">
-                <!-- Date & Shift -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-                        <input type="date" name="date" value="@todayDate" required
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
-                        <select name="shift" required
-                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-                            <option value="">Select shift...</option>
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
-                            <option value="Night">Night</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Opening & Closing Balance -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance *</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input type="number" name="openingBalance" step="0.01" value="0" required id="openingBalance"
-                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Closing Balance *</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input type="number" name="closingBalance" step="0.01" value="0" required id="closingBalance"
-                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cash In & Cash Out -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cash In</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input type="number" name="cashIn" step="0.01" value="0" id="cashIn"
-                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cash Out</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input type="number" name="cashOut" step="0.01" value="0" id="cashOut"
-                                   class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Credit Card Total -->
+    <!-- Previous Log -->
+    @if (lastReport != null)
+    {
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-sm font-semibold text-amber-800">Previous Cash Log</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Credit Card Total</label>
-                    <div class="relative max-w-xs">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                        <input type="number" name="creditCardTotal" step="0.01" value="0"
-                               class="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-                    </div>
+                    <span class="text-amber-600 text-xs">By</span>
+                    <p class="font-medium text-amber-900">@lastReport.CreatedBy</p>
                 </div>
-
-                <!-- Auto-calculated Variance Preview -->
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-600">Estimated Variance</span>
-                        <span id="variancePreview" class="text-lg font-bold text-gray-500">$0.00</span>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">Variance = Closing Balance - (Opening Balance + Cash In - Cash Out)</p>
-                </div>
-
-                <!-- Notes -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea name="notes" rows="3" placeholder="Any notes about this shift..."
-                              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"></textarea>
+                    <span class="text-amber-600 text-xs">Shift</span>
+                    <p class="font-medium text-amber-900">@lastReport.Shift - @lastReport.Date</p>
                 </div>
-
-                <!-- Submit -->
-                <div class="flex items-center gap-3 pt-2">
-                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                        Create Cash Report
-                    </button>
-                    <a href="/FrontDesk/CashReports" class="px-6 py-2.5 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
-                        Cancel
-                    </a>
+                <div>
+                    <span class="text-amber-600 text-xs">Cash Total</span>
+                    <p class="font-bold text-amber-900 text-lg">@lastReport.CashTotal.ToString("C2")</p>
+                </div>
+                <div>
+                    <span class="text-amber-600 text-xs">Time</span>
+                    <p class="font-medium text-amber-900">@lastReport.CreatedAt.ToString("MMM dd, h:mm tt")</p>
                 </div>
             </div>
-        </form>
-    </div>
+            @{
+                var hasBreakdown = lastReport.Bills100 > 0 || lastReport.Bills50 > 0 || lastReport.Bills20 > 0 || lastReport.Bills10 > 0 || lastReport.Bills5 > 0 || lastReport.Bills1 > 0 ||
+                                   lastReport.Coins25 > 0 || lastReport.Coins10 > 0 || lastReport.Coins5 > 0 || lastReport.Coins1 > 0 ||
+                                   lastReport.Rolls25 > 0 || lastReport.Rolls10 > 0 || lastReport.Rolls5 > 0 || lastReport.Rolls1 > 0;
+            }
+            @if (hasBreakdown)
+            {
+                <details class="mt-3">
+                    <summary class="text-xs text-amber-700 font-medium cursor-pointer hover:underline">View breakdown</summary>
+                    <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                        @if (lastReport.Bills100 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$100 x @lastReport.Bills100</span> }
+                        @if (lastReport.Bills50 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$50 x @lastReport.Bills50</span> }
+                        @if (lastReport.Bills20 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$20 x @lastReport.Bills20</span> }
+                        @if (lastReport.Bills10 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$10 x @lastReport.Bills10</span> }
+                        @if (lastReport.Bills5 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$5 x @lastReport.Bills5</span> }
+                        @if (lastReport.Bills1 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">$1 x @lastReport.Bills1</span> }
+                        @if (lastReport.Coins25 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">25c x @lastReport.Coins25</span> }
+                        @if (lastReport.Coins10 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">10c x @lastReport.Coins10</span> }
+                        @if (lastReport.Coins5 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">5c x @lastReport.Coins5</span> }
+                        @if (lastReport.Coins1 > 0) { <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">1c x @lastReport.Coins1</span> }
+                        @if (lastReport.Rolls25 > 0) { <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">Quarter Roll x @lastReport.Rolls25</span> }
+                        @if (lastReport.Rolls10 > 0) { <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">Dime Roll x @lastReport.Rolls10</span> }
+                        @if (lastReport.Rolls5 > 0) { <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">Nickel Roll x @lastReport.Rolls5</span> }
+                        @if (lastReport.Rolls1 > 0) { <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">Penny Roll x @lastReport.Rolls1</span> }
+                    </div>
+                </details>
+            }
+        </div>
+    }
+
+    <!-- Form -->
+    <form method="post" asp-action="CreateCashReport">
+        @Html.AntiForgeryToken()
+
+        <!-- Date & Shift -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input type="date" name="date" value="@todayDate" required
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
+                    <select name="shift" required
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <option value="">Select shift...</option>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                        <option value="Night">Night</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bill Counter -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Bills
+            </h2>
+            <div class="space-y-3">
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">$100</span>
+                    <input type="number" name="bills100" id="b100" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t100" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">$50</span>
+                    <input type="number" name="bills50" id="b50" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t50" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">$20</span>
+                    <input type="number" name="bills20" id="b20" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t20" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">$10</span>
+                    <input type="number" name="bills10" id="b10" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t10" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">$5</span>
+                    <input type="number" name="bills5" id="b5" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t5" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2">
+                    <span class="text-sm font-semibold text-gray-700">$1</span>
+                    <input type="number" name="bills1" id="b1" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                    <span id="t1" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coin Counter -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Coins
+            </h2>
+            <div class="space-y-3">
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">25&cent; <span class="text-gray-400 font-normal">(Quarter)</span></span>
+                    <input type="number" name="coins25" id="c25" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" />
+                    <span id="tc25" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">10&cent; <span class="text-gray-400 font-normal">(Dime)</span></span>
+                    <input type="number" name="coins10" id="c10" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" />
+                    <span id="tc10" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">5&cent; <span class="text-gray-400 font-normal">(Nickel)</span></span>
+                    <input type="number" name="coins5" id="c5" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" />
+                    <span id="tc5" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2">
+                    <span class="text-sm font-semibold text-gray-700">1&cent; <span class="text-gray-400 font-normal">(Penny)</span></span>
+                    <input type="number" name="coins1" id="c1" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none" />
+                    <span id="tc1" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coin Rolls -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+            <h2 class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Coin Rolls
+            </h2>
+            <p class="text-xs text-gray-400 mb-4">Sealed rolls only &mdash; do not open unless needed</p>
+            <div class="space-y-3">
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">Quarter Roll <span class="text-purple-500 font-normal">($10)</span></span>
+                    <input type="number" name="rolls25" id="r25" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                    <span id="tr25" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">Dime Roll <span class="text-purple-500 font-normal">($5)</span></span>
+                    <input type="number" name="rolls10" id="r10" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                    <span id="tr10" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2 border-b border-gray-100">
+                    <span class="text-sm font-semibold text-gray-700">Nickel Roll <span class="text-purple-500 font-normal">($2)</span></span>
+                    <input type="number" name="rolls5" id="r5" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                    <span id="tr5" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+                <div class="grid grid-cols-3 items-center gap-3 py-2">
+                    <span class="text-sm font-semibold text-gray-700">Penny Roll <span class="text-purple-500 font-normal">($0.50)</span></span>
+                    <input type="number" name="rolls1" id="r1" value="0" min="0" oninput="calcTotal()"
+                           class="bill-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                    <span id="tr1" class="text-sm font-mono text-right text-gray-500">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Calculator -->
+        <div class="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-green-700">Cash Drawer Total</p>
+                    <p class="text-xs text-green-600 mt-0.5">Calculated from bills, coins &amp; rolls above</p>
+                </div>
+                <p id="grandTotal" class="text-4xl font-extrabold text-green-700">$0.00</p>
+            </div>
+            @if (lastReport != null)
+            {
+                <div class="mt-3 pt-3 border-t border-green-200 flex items-center justify-between">
+                    <span class="text-sm text-green-700">Difference from previous log (@lastReport.CreatedBy)</span>
+                    <span id="diffDisplay" class="text-lg font-bold text-gray-500" data-prev="@lastReport.CashTotal">$0.00</span>
+                </div>
+            }
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea name="notes" rows="2" placeholder="Any notes about this shift..."
+                      class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"></textarea>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center gap-3">
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Create Cash Log
+            </button>
+            <a href="/FrontDesk/CashReports" class="px-6 py-3 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+                Cancel
+            </a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
 <script>
-    function calcVariance() {
-        var opening = parseFloat(document.getElementById('openingBalance').value) || 0;
-        var closing = parseFloat(document.getElementById('closingBalance').value) || 0;
-        var cashIn = parseFloat(document.getElementById('cashIn').value) || 0;
-        var cashOut = parseFloat(document.getElementById('cashOut').value) || 0;
-        var expected = opening + cashIn - cashOut;
-        var variance = closing - expected;
-        var el = document.getElementById('variancePreview');
-        el.textContent = (variance >= 0 ? '+' : '') + '$' + variance.toFixed(2);
-        el.className = 'text-lg font-bold ' + (variance < 0 ? 'text-red-600' : variance > 0 ? 'text-green-600' : 'text-gray-500');
+    var denominations = [
+        { id: 'b100', tid: 't100', value: 100 },
+        { id: 'b50', tid: 't50', value: 50 },
+        { id: 'b20', tid: 't20', value: 20 },
+        { id: 'b10', tid: 't10', value: 10 },
+        { id: 'b5', tid: 't5', value: 5 },
+        { id: 'b1', tid: 't1', value: 1 },
+        { id: 'c25', tid: 'tc25', value: 0.25 },
+        { id: 'c10', tid: 'tc10', value: 0.10 },
+        { id: 'c5', tid: 'tc5', value: 0.05 },
+        { id: 'c1', tid: 'tc1', value: 0.01 },
+        { id: 'r25', tid: 'tr25', value: 10 },
+        { id: 'r10', tid: 'tr10', value: 5 },
+        { id: 'r5', tid: 'tr5', value: 2 },
+        { id: 'r1', tid: 'tr1', value: 0.50 }
+    ];
+
+    function calcTotal() {
+        var total = 0;
+        denominations.forEach(function(d) {
+            var count = parseInt(document.getElementById(d.id).value) || 0;
+            var subtotal = count * d.value;
+            total += subtotal;
+            document.getElementById(d.tid).textContent = '$' + subtotal.toFixed(2);
+            document.getElementById(d.tid).className = 'text-sm font-mono text-right ' + (subtotal > 0 ? 'text-green-600 font-semibold' : 'text-gray-400');
+        });
+        document.getElementById('grandTotal').textContent = '$' + total.toFixed(2);
+
+        var diffEl = document.getElementById('diffDisplay');
+        if (diffEl) {
+            var prev = parseFloat(diffEl.dataset.prev) || 0;
+            var diff = total - prev;
+            diffEl.textContent = (diff >= 0 ? '+' : '') + '$' + diff.toFixed(2);
+            diffEl.className = 'text-lg font-bold ' + (diff < 0 ? 'text-red-600' : diff > 0 ? 'text-green-600' : 'text-gray-500');
+        }
     }
-    document.querySelectorAll('#openingBalance, #closingBalance, #cashIn, #cashOut').forEach(function(el) {
-        el.addEventListener('input', calcVariance);
-    });
 </script>
 }

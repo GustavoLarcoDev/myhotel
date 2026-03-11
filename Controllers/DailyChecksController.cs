@@ -89,18 +89,19 @@ public class DailyChecksController : Controller
 
     [HttpPost("Toggle")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Toggle(int id, string? completedBy)
+    public async Task<IActionResult> Toggle(int id)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
 
+        var user = await _userManager.GetUserAsync(User);
         var check = await _db.DailyChecks
             .FirstOrDefaultAsync(c => c.Id == id && c.HotelId == hotelId.Value);
 
         if (check != null)
         {
             check.IsCompleted = !check.IsCompleted;
-            check.CompletedBy = check.IsCompleted ? completedBy : null;
+            check.CompletedBy = check.IsCompleted ? (user?.FullName ?? "Unknown") : null;
             await _db.SaveChangesAsync();
 
             // Check if all daily checks are now completed
@@ -114,7 +115,6 @@ public class DailyChecksController : Controller
                 if (allChecks.Count > 0 && allChecks.All(c => c.IsCompleted))
                 {
                     // Notify GMs that all daily checks are completed
-                    var user = await _userManager.GetUserAsync(User);
                     var gmUserIds = await _db.UserHotelRoles
                         .Where(r => r.HotelId == hotelId.Value &&
                                     (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))

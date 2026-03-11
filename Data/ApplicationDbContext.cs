@@ -31,6 +31,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Reading> Readings => Set<Reading>();
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<AnnouncementDepartment> AnnouncementDepartments => Set<AnnouncementDepartment>();
+    public DbSet<AnnouncementReadReceipt> AnnouncementReadReceipts => Set<AnnouncementReadReceipt>();
 
     // Scheduling & HR
     public DbSet<Schedule> Schedules => Set<Schedule>();
@@ -105,6 +107,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany()
             .HasForeignKey(m => m.ToUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<AnnouncementReadReceipt>()
+            .HasIndex(r => new { r.MessageId, r.UserId })
+            .IsUnique();
 
         // Schedule
         builder.Entity<Schedule>()

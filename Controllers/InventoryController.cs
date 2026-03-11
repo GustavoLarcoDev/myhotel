@@ -369,6 +369,124 @@ public class InventoryController : Controller
         return RedirectToAction("Index", new { type, dept });
     }
 
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> RemoveStockAjax([FromBody] AjaxStockRequest request)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        if (hotelId == null) return Unauthorized();
+
+        var item = await _db.InventoryItems
+            .FirstOrDefaultAsync(i => i.Id == request.ItemId && i.HotelId == hotelId.Value);
+        if (item == null) return NotFound(new { error = "Item not found." });
+
+        var qty = request.Quantity > 0 ? request.Quantity : 1;
+        var actualRemove = Math.Min(qty, item.Quantity);
+        if (actualRemove == 0)
+            return Json(new { success = true, newQuantity = item.Quantity, itemName = item.Name, unit = item.Unit, isLow = item.Quantity <= item.MinStock, minStock = item.MinStock });
+
+        var createdBy = User.FindFirstValue(ClaimTypes.Name)
+                        ?? User.FindFirstValue(ClaimTypes.Email)
+                        ?? User.Identity?.Name
+                        ?? "System";
+
+        var transaction = new InventoryTransaction
+        {
+            ItemId = request.ItemId,
+            Quantity = actualRemove,
+            Type = "out",
+            Notes = request.Notes,
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        item.Quantity -= actualRemove;
+        _db.InventoryTransactions.Add(transaction);
+        await _db.SaveChangesAsync();
+
+        return Json(new { success = true, newQuantity = item.Quantity, removed = actualRemove, itemName = item.Name, unit = item.Unit, isLow = item.Quantity <= item.MinStock, minStock = item.MinStock });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> AddStockAjax([FromBody] AjaxStockRequest request)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        if (hotelId == null) return Unauthorized();
+
+        var item = await _db.InventoryItems
+            .FirstOrDefaultAsync(i => i.Id == request.ItemId && i.HotelId == hotelId.Value);
+        if (item == null) return NotFound(new { error = "Item not found." });
+
+        var qty = request.Quantity > 0 ? request.Quantity : 1;
+
+        var createdBy = User.FindFirstValue(ClaimTypes.Name)
+                        ?? User.FindFirstValue(ClaimTypes.Email)
+                        ?? User.Identity?.Name
+                        ?? "System";
+
+        var transaction = new InventoryTransaction
+        {
+            ItemId = request.ItemId,
+            Quantity = qty,
+            Type = "in",
+            Notes = request.Notes,
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        item.Quantity += qty;
+        _db.InventoryTransactions.Add(transaction);
+        await _db.SaveChangesAsync();
+
+        return Json(new { success = true, newQuantity = item.Quantity, added = qty, itemName = item.Name, unit = item.Unit, isLow = item.Quantity <= item.MinStock, minStock = item.MinStock });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> AdjustStockAjax([FromBody] AjaxStockRequest request)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        if (hotelId == null) return Unauthorized();
+
+        var item = await _db.InventoryItems
+            .FirstOrDefaultAsync(i => i.Id == request.ItemId && i.HotelId == hotelId.Value);
+        if (item == null) return NotFound(new { error = "Item not found." });
+
+        var newQty = request.Quantity < 0 ? 0 : request.Quantity;
+        var diff = newQty - item.Quantity;
+        if (diff == 0)
+            return Json(new { success = true, newQuantity = item.Quantity, itemName = item.Name, unit = item.Unit, isLow = item.Quantity <= item.MinStock, minStock = item.MinStock });
+
+        var createdBy = User.FindFirstValue(ClaimTypes.Name)
+                        ?? User.FindFirstValue(ClaimTypes.Email)
+                        ?? User.Identity?.Name
+                        ?? "System";
+
+        var transaction = new InventoryTransaction
+        {
+            ItemId = request.ItemId,
+            Quantity = Math.Abs(diff),
+            Type = diff > 0 ? "in" : "out",
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? $"Adjusted to {newQty}" : request.Notes,
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        item.Quantity = newQty;
+        _db.InventoryTransactions.Add(transaction);
+        await _db.SaveChangesAsync();
+
+        return Json(new { success = true, newQuantity = item.Quantity, itemName = item.Name, unit = item.Unit, isLow = item.Quantity <= item.MinStock, minStock = item.MinStock });
+    }
+
+    public class AjaxStockRequest
+    {
+        public int ItemId { get; set; }
+        public int Quantity { get; set; }
+        public string? Notes { get; set; }
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetTransactions(int itemId)
     {

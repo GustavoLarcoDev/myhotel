@@ -50,7 +50,7 @@
 <!-- Create Form -->
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
     <h3 class="text-sm font-semibold text-gray-700 mb-3">Report Found Item</h3>
-    <form method="post" action="/LostFound/Create" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <form method="post" action="/LostFound/Create" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         @Html.AntiForgeryToken()
         <div>
             <label class="text-xs text-gray-600 block mb-1">Item Description *</label>
@@ -60,11 +60,6 @@
         <div>
             <label class="text-xs text-gray-600 block mb-1">Location Found</label>
             <input type="text" name="location" placeholder="Where was it found?"
-                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-        </div>
-        <div>
-            <label class="text-xs text-gray-600 block mb-1">Found By</label>
-            <input type="text" name="foundBy" placeholder="Who found it?"
                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <div>
@@ -260,11 +255,6 @@ else
                         <form method="post" action="/LostFound/Claim" class="space-y-2">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@item.Id" />
-                            <div>
-                                <label class="text-xs text-gray-600 block mb-1">Claimed By (staff)</label>
-                                <input type="text" name="claimedBy" placeholder="Staff member name"
-                                       class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-                            </div>
                             <div>
                                 <label class="text-xs text-gray-600 block mb-1">Guest Name</label>
                                 <input type="text" name="guestName" placeholder="Guest who claimed it"

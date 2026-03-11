@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyHotel.Web.Data;
 
@@ -10,9 +11,11 @@ using MyHotel.Web.Data;
 namespace MyHotel.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311062444_AddCashReportBillCounts")]
+    partial class AddCashReportBillCounts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.14");
@@ -143,53 +146,6 @@ namespace MyHotel.Web.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("MyHotel.Web.Models.Entities.AnnouncementDepartment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DepartmentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("MessageId");
-
-                    b.ToTable("AnnouncementDepartments");
-                });
-
-            modelBuilder.Entity("MyHotel.Web.Models.Entities.AnnouncementReadReceipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("ReadAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("MessageId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("AnnouncementReadReceipts");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.ApplicationUser", b =>
@@ -418,18 +374,6 @@ namespace MyHotel.Web.Migrations
 
                     b.Property<decimal>("OpeningBalance")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Rolls1")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Rolls10")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Rolls25")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Rolls5")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Shift")
                         .IsRequired()
@@ -1125,6 +1069,9 @@ namespace MyHotel.Web.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("FromUserId")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1146,6 +1093,8 @@ namespace MyHotel.Web.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.HasIndex("FromUserId");
 
@@ -1994,44 +1943,6 @@ namespace MyHotel.Web.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MyHotel.Web.Models.Entities.AnnouncementDepartment", b =>
-                {
-                    b.HasOne("MyHotel.Web.Models.Entities.Department", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MyHotel.Web.Models.Entities.Message", "Message")
-                        .WithMany("AnnouncementDepartments")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Message");
-                });
-
-            modelBuilder.Entity("MyHotel.Web.Models.Entities.AnnouncementReadReceipt", b =>
-                {
-                    b.HasOne("MyHotel.Web.Models.Entities.Message", "Message")
-                        .WithMany("AnnouncementReadReceipts")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MyHotel.Web.Models.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Asset", b =>
                 {
                     b.HasOne("MyHotel.Web.Models.Entities.Hotel", "Hotel")
@@ -2309,6 +2220,10 @@ namespace MyHotel.Web.Migrations
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Message", b =>
                 {
+                    b.HasOne("MyHotel.Web.Models.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
                     b.HasOne("MyHotel.Web.Models.Entities.ApplicationUser", "FromUser")
                         .WithMany()
                         .HasForeignKey("FromUserId")
@@ -2325,6 +2240,8 @@ namespace MyHotel.Web.Migrations
                         .WithMany()
                         .HasForeignKey("ToUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Department");
 
                     b.Navigation("FromUser");
 
@@ -2564,13 +2481,6 @@ namespace MyHotel.Web.Migrations
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Meeting", b =>
                 {
                     b.Navigation("Attendees");
-                });
-
-            modelBuilder.Entity("MyHotel.Web.Models.Entities.Message", b =>
-                {
-                    b.Navigation("AnnouncementDepartments");
-
-                    b.Navigation("AnnouncementReadReceipts");
                 });
 
             modelBuilder.Entity("MyHotel.Web.Models.Entities.Room", b =>

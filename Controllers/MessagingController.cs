@@ -29,7 +29,7 @@ public class MessagingController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Index(string tab = "inbox", string? dept = null)
+    public async Task<IActionResult> Index(string tab = "chats", string? userId = null, string? dept = null)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -37,141 +37,154 @@ public class MessagingController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null) return RedirectToAction("Index", "Home");
 
-        if (tab != "inbox" && tab != "sent" && tab != "announcements")
-            tab = "inbox";
+        var currentUser = await _userManager.GetUserAsync(User);
 
-        List<Message> messages;
+        // Check if GM or AGM for announcement permissions
+        var isGMOrAGM = await _db.UserHotelRoles
+            .AnyAsync(r => r.UserId == currentUserId && r.HotelId == hotelId.Value
+                && (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM));
 
-        switch (tab)
-        {
-            case "sent":
-                messages = await _db.Messages
-                    .Where(m => m.HotelId == hotelId.Value && m.FromUserId == currentUserId)
-                    .Include(m => m.FromUser)
-                    .Include(m => m.ToUser)
-                    .OrderByDescending(m => m.CreatedAt)
-                    .ToListAsync();
-                break;
-            case "announcements":
-                messages = await _db.Messages
-                    .Where(m => m.HotelId == hotelId.Value && m.IsAnnouncement)
-                    .Include(m => m.FromUser)
-                    .Include(m => m.ToUser)
-                    .OrderByDescending(m => m.CreatedAt)
-                    .ToListAsync();
-                break;
-            default: // inbox
-                messages = await _db.Messages
-                    .Where(m => m.HotelId == hotelId.Value && m.ToUserId == currentUserId && !m.IsAnnouncement)
-                    .Include(m => m.FromUser)
-                    .Include(m => m.ToUser)
-                    .OrderByDescending(m => m.CreatedAt)
-                    .ToListAsync();
-                break;
-        }
+        // Hotel users for "new chat" picker
+        var hotelUsers = await _db.UserHotelRoles
+            .Where(r => r.HotelId == hotelId.Value && r.UserId != currentUserId)
+            .Include(r => r.User)
+            .Select(r => r.User)
+            .Distinct()
+            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .ToListAsync();
 
-        // Unread count (inbox only)
-        var unreadCount = await _db.Messages
+        // Departments for announcement targeting
+        var departments = await _db.Departments
+            .Where(d => d.HotelId == hotelId.Value)
+            .OrderBy(d => d.Name)
+            .ToListAsync();
+
+        // Unread DM count
+        var unreadDMCount = await _db.Messages
             .Where(m => m.HotelId == hotelId.Value && m.ToUserId == currentUserId && !m.IsRead && !m.IsAnnouncement)
             .CountAsync();
 
-        // Hotel users for recipient dropdown
-        List<ApplicationUser> hotelUsers;
+        // Unread announcement count
+        var readAnnouncementIds = await _db.AnnouncementReadReceipts
+            .Where(r => r.UserId == currentUserId)
+            .Select(r => r.MessageId)
+            .ToListAsync();
 
-        if (!string.IsNullOrWhiteSpace(dept))
-        {
-            // Build department name search patterns based on dept parameter
-            var deptPatterns = GetDeptPatterns(dept);
+        var userDeptIds = await _db.UserDepartments
+            .Where(ud => ud.UserId == currentUserId)
+            .Select(ud => ud.DepartmentId)
+            .ToListAsync();
 
-            if (deptPatterns.Count > 0)
-            {
-                // Find matching department IDs for this hotel
-                var departmentsQuery = _db.Set<Department>()
-                    .Where(d => d.HotelId == hotelId.Value);
+        var unreadAnnouncementCount = await _db.Messages
+            .Where(m => m.HotelId == hotelId.Value && m.IsAnnouncement && m.FromUserId != currentUserId
+                && !readAnnouncementIds.Contains(m.Id))
+            .Where(m => !m.AnnouncementDepartments.Any() || m.AnnouncementDepartments.Any(ad => userDeptIds.Contains(ad.DepartmentId)))
+            .CountAsync();
 
-                // Build OR filter for department name patterns
-                var matchingDeptIds = await departmentsQuery
-                    .Where(d => deptPatterns.Any(p => d.Name.ToLower().Contains(p)))
-                    .Select(d => d.Id)
-                    .ToListAsync();
-
-                if (matchingDeptIds.Count > 0)
-                {
-                    // Get user IDs in those departments
-                    var deptUserIds = await _db.UserDepartments
-                        .Where(ud => matchingDeptIds.Contains(ud.DepartmentId) && ud.UserId != currentUserId)
-                        .Select(ud => ud.UserId)
-                        .Distinct()
-                        .ToListAsync();
-
-                    // Get user objects that are also in this hotel
-                    hotelUsers = await _db.UserHotelRoles
-                        .Where(r => r.HotelId == hotelId.Value && deptUserIds.Contains(r.UserId))
-                        .Include(r => r.User)
-                        .Select(r => r.User)
-                        .Distinct()
-                        .OrderBy(u => u.FirstName)
-                        .ThenBy(u => u.LastName)
-                        .ToListAsync();
-                }
-                else
-                {
-                    // No matching departments found, show all hotel users
-                    hotelUsers = await GetAllHotelUsers(hotelId.Value, currentUserId);
-                }
-            }
-            else
-            {
-                // Unknown dept value, show all hotel users
-                hotelUsers = await GetAllHotelUsers(hotelId.Value, currentUserId);
-            }
-        }
-        else
-        {
-            hotelUsers = await GetAllHotelUsers(hotelId.Value, currentUserId);
-        }
-
-        ViewBag.CurrentTab = tab;
-        ViewBag.UnreadCount = unreadCount;
-        ViewBag.HotelUsers = hotelUsers;
         ViewBag.CurrentUserId = currentUserId;
-        ViewBag.CurrentDept = dept;
-        ViewBag.DeptName = GetDeptDisplayName(dept);
+        ViewBag.CurrentUserName = currentUser?.FullName ?? "Unknown";
+        ViewBag.IsGMOrAGM = isGMOrAGM;
+        ViewBag.HotelUsers = hotelUsers;
+        ViewBag.Departments = departments;
+        ViewBag.Tab = tab;
+        ViewBag.PreselectedUserId = userId;
+        ViewBag.Dept = dept;
+        ViewBag.UnreadDMCount = unreadDMCount;
+        ViewBag.UnreadAnnouncementCount = unreadAnnouncementCount;
 
-        return View(messages);
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetConversationList()
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        if (hotelId == null) return Json(new List<object>());
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Json(new List<object>());
+
+        // Get all DMs involving current user
+        var myMessages = await _db.Messages
+            .Where(m => m.HotelId == hotelId.Value && !m.IsAnnouncement
+                && (m.FromUserId == currentUserId || m.ToUserId == currentUserId))
+            .Include(m => m.FromUser)
+            .Include(m => m.ToUser)
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync();
+
+        // Group by conversation partner
+        var conversations = myMessages
+            .GroupBy(m => m.FromUserId == currentUserId ? m.ToUserId : m.FromUserId)
+            .Select(g =>
+            {
+                var lastMsg = g.First();
+                var partnerId = g.Key;
+                var partner = lastMsg.FromUserId == currentUserId ? lastMsg.ToUser : lastMsg.FromUser;
+                var unread = g.Count(m => m.ToUserId == currentUserId && !m.IsRead);
+                return new
+                {
+                    userId = partnerId,
+                    fullName = partner?.FullName ?? "Unknown",
+                    initials = (partner?.FirstName?.Substring(0, 1) ?? "") + (partner?.LastName?.Substring(0, 1) ?? ""),
+                    lastMessage = lastMsg.Body.Length > 60 ? lastMsg.Body.Substring(0, 60) + "..." : lastMsg.Body,
+                    lastMessageAt = lastMsg.CreatedAt,
+                    isMine = lastMsg.FromUserId == currentUserId,
+                    unreadCount = unread
+                };
+            })
+            .OrderByDescending(c => c.lastMessageAt)
+            .ToList();
+
+        return Json(conversations);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetConversation(string userId)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        if (hotelId == null) return Json(new List<object>());
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return Json(new List<object>());
+
+        var messages = await _db.Messages
+            .Where(m => m.HotelId == hotelId.Value && !m.IsAnnouncement
+                && ((m.FromUserId == currentUserId && m.ToUserId == userId)
+                    || (m.FromUserId == userId && m.ToUserId == currentUserId)))
+            .OrderBy(m => m.CreatedAt)
+            .Select(m => new
+            {
+                id = m.Id,
+                body = m.Body,
+                fromUserId = m.FromUserId,
+                createdAt = m.CreatedAt
+            })
+            .ToListAsync();
+
+        return Json(messages);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Send(string? toUserId, string subject, string body, bool isAnnouncement = false, string? dept = null)
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
     {
         var hotelId = _hotelContext.CurrentHotelId;
-        if (hotelId == null) return RedirectToAction("Index", "Home");
+        if (hotelId == null) return BadRequest();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId == null) return RedirectToAction("Index", "Home");
+        if (currentUserId == null) return BadRequest();
 
-        var redirectRoute = new { tab = "sent", dept };
-
-        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
-        {
-            TempData["Error"] = "Subject and body are required.";
-            return RedirectToAction("Index", new { dept });
-        }
-
-        if (!isAnnouncement && string.IsNullOrWhiteSpace(toUserId))
-        {
-            TempData["Error"] = "Please select a recipient.";
-            return RedirectToAction("Index", new { dept });
-        }
+        if (string.IsNullOrWhiteSpace(request.Body) || string.IsNullOrWhiteSpace(request.ToUserId))
+            return BadRequest(new { error = "Message and recipient required." });
 
         var message = new Message
         {
             HotelId = hotelId.Value,
-            Subject = subject.Trim(),
-            Body = body.Trim(),
+            Body = request.Body.Trim(),
             FromUserId = currentUserId,
-            ToUserId = isAnnouncement ? null : toUserId,
-            IsAnnouncement = isAnnouncement,
+            ToUserId = request.ToUserId,
+            IsAnnouncement = false,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
         };
@@ -179,58 +192,197 @@ public class MessagingController : Controller
         _db.Messages.Add(message);
         await _db.SaveChangesAsync();
 
-        // Send notifications
-        var sender = await _userManager.FindByIdAsync(currentUserId);
-        var senderName = sender != null ? $"{sender.FirstName} {sender.LastName}".Trim() : "Someone";
-        var deptParam = !string.IsNullOrWhiteSpace(dept) ? $"?dept={dept}" : "";
+        // Notify recipient
+        var sender = await _userManager.GetUserAsync(User);
+        await _notificationService.CreateAsync(
+            hotelId.Value,
+            request.ToUserId,
+            $"Message from {sender?.FullName ?? "Someone"}",
+            message.Body.Length > 50 ? message.Body.Substring(0, 50) + "..." : message.Body,
+            $"/Messaging?userId={currentUserId}",
+            "info");
 
-        if (isAnnouncement)
+        return Json(new
         {
-            // Notify all hotel users about the announcement
+            id = message.Id,
+            body = message.Body,
+            fromUserId = message.FromUserId,
+            createdAt = message.CreatedAt
+        });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> MarkConversationRead([FromBody] MarkReadRequest request)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (hotelId == null || currentUserId == null) return BadRequest();
+
+        var unreadMessages = await _db.Messages
+            .Where(m => m.HotelId == hotelId.Value && m.FromUserId == request.UserId
+                && m.ToUserId == currentUserId && !m.IsRead && !m.IsAnnouncement)
+            .ToListAsync();
+
+        foreach (var m in unreadMessages)
+            m.IsRead = true;
+
+        await _db.SaveChangesAsync();
+        return Json(new { success = true, markedCount = unreadMessages.Count });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAnnouncements()
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (hotelId == null || currentUserId == null) return Json(new List<object>());
+
+        var userDeptIds = await _db.UserDepartments
+            .Where(ud => ud.UserId == currentUserId)
+            .Select(ud => ud.DepartmentId)
+            .ToListAsync();
+
+        var readIds = await _db.AnnouncementReadReceipts
+            .Where(r => r.UserId == currentUserId)
+            .Select(r => r.MessageId)
+            .ToListAsync();
+
+        var announcements = await _db.Messages
+            .Where(m => m.HotelId == hotelId.Value && m.IsAnnouncement)
+            .Where(m => !m.AnnouncementDepartments.Any() || m.AnnouncementDepartments.Any(ad => userDeptIds.Contains(ad.DepartmentId)))
+            .Include(m => m.FromUser)
+            .Include(m => m.AnnouncementDepartments).ThenInclude(ad => ad.Department)
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync();
+
+        var result = announcements.Select(a => new
+        {
+            id = a.Id,
+            subject = a.Subject,
+            body = a.Body,
+            fromName = a.FromUser?.FullName ?? "Unknown",
+            fromInitials = (a.FromUser?.FirstName?.Substring(0, 1) ?? "") + (a.FromUser?.LastName?.Substring(0, 1) ?? ""),
+            createdAt = a.CreatedAt,
+            isRead = readIds.Contains(a.Id),
+            departments = a.AnnouncementDepartments.Select(ad => ad.Department.Name).ToList(),
+            isAllHotel = !a.AnnouncementDepartments.Any()
+        });
+
+        return Json(result);
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> SendAnnouncement([FromBody] SendAnnouncementRequest request)
+    {
+        var hotelId = _hotelContext.CurrentHotelId;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (hotelId == null || currentUserId == null) return BadRequest();
+
+        // Only GM or AGM can send announcements
+        var isGMOrAGM = await _db.UserHotelRoles
+            .AnyAsync(r => r.UserId == currentUserId && r.HotelId == hotelId.Value
+                && (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM));
+
+        if (!isGMOrAGM)
+            return Forbid();
+
+        if (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body))
+            return BadRequest(new { error = "Subject and body required." });
+
+        var announcement = new Message
+        {
+            HotelId = hotelId.Value,
+            Subject = request.Subject.Trim(),
+            Body = request.Body.Trim(),
+            FromUserId = currentUserId,
+            IsAnnouncement = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Messages.Add(announcement);
+        await _db.SaveChangesAsync();
+
+        // Add department targets
+        if (request.DepartmentIds != null && request.DepartmentIds.Any())
+        {
+            foreach (var deptId in request.DepartmentIds)
+            {
+                _db.AnnouncementDepartments.Add(new AnnouncementDepartment
+                {
+                    MessageId = announcement.Id,
+                    DepartmentId = deptId
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        // Notify
+        var sender = await _userManager.GetUserAsync(User);
+        if (request.DepartmentIds != null && request.DepartmentIds.Any())
+        {
+            foreach (var deptId in request.DepartmentIds)
+            {
+                await _notificationService.NotifyDepartmentAsync(
+                    hotelId.Value, deptId,
+                    $"Announcement from {sender?.FullName}",
+                    request.Subject,
+                    "/Messaging?tab=announcements",
+                    "info",
+                    currentUserId);
+            }
+        }
+        else
+        {
             await _notificationService.NotifyHotelAsync(
                 hotelId.Value,
-                $"New Announcement from {senderName}",
-                message: subject.Trim(),
-                link: $"/Messaging?tab=announcements{(string.IsNullOrWhiteSpace(dept) ? "" : $"&dept={dept}")}",
-                type: "info",
-                excludeUserId: currentUserId);
-        }
-        else if (!string.IsNullOrWhiteSpace(toUserId))
-        {
-            // Notify the recipient about the direct message
-            await _notificationService.CreateAsync(
-                hotelId.Value,
-                toUserId,
-                $"New Message from {senderName}",
-                message: subject.Trim(),
-                link: $"/Messaging{deptParam}",
-                type: "info");
+                $"Announcement from {sender?.FullName}",
+                request.Subject,
+                "/Messaging?tab=announcements",
+                "info",
+                currentUserId);
         }
 
-        TempData["Success"] = isAnnouncement ? "Announcement posted." : "Message sent.";
-        return RedirectToAction("Index", redirectRoute);
+        return Json(new { success = true, id = announcement.Id });
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> MarkAnnouncementRead([FromBody] MarkAnnouncementReadRequest request)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return BadRequest();
+
+        var exists = await _db.AnnouncementReadReceipts
+            .AnyAsync(r => r.MessageId == request.MessageId && r.UserId == currentUserId);
+
+        if (!exists)
+        {
+            _db.AnnouncementReadReceipts.Add(new AnnouncementReadReceipt
+            {
+                MessageId = request.MessageId,
+                UserId = currentUserId,
+                ReadAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
+
+        return Json(new { success = true });
+    }
+
+    // Legacy route support — redirect old links
+    [HttpPost]
+    public async Task<IActionResult> Send(string? toUserId, string subject, string body, bool isAnnouncement = false, string? dept = null)
+    {
+        // Redirect to new system
+        return RedirectToAction("Index");
     }
 
     [HttpPost]
     public async Task<IActionResult> MarkAsRead(int id, string? dept = null)
     {
-        var hotelId = _hotelContext.CurrentHotelId;
-        if (hotelId == null) return RedirectToAction("Index", "Home");
-
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        var message = await _db.Messages
-            .FirstOrDefaultAsync(m => m.Id == id && m.HotelId == hotelId.Value && m.ToUserId == currentUserId);
-        if (message == null)
-        {
-            TempData["Error"] = "Message not found.";
-            return RedirectToAction("Index", new { dept });
-        }
-
-        message.IsRead = true;
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "Message marked as read.";
-        return RedirectToAction("Index", new { dept });
+        return RedirectToAction("Index");
     }
 
     [HttpPost]
@@ -244,53 +396,35 @@ public class MessagingController : Controller
         var message = await _db.Messages
             .FirstOrDefaultAsync(m => m.Id == id && m.HotelId == hotelId.Value &&
                 (m.FromUserId == currentUserId || m.ToUserId == currentUserId));
-        if (message == null)
+        if (message != null)
         {
-            TempData["Error"] = "Message not found.";
-            return RedirectToAction("Index", new { dept });
+            _db.Messages.Remove(message);
+            await _db.SaveChangesAsync();
         }
 
-        _db.Messages.Remove(message);
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "Message deleted.";
-        return RedirectToAction("Index", new { dept });
+        return RedirectToAction("Index");
     }
+}
 
-    private async Task<List<ApplicationUser>> GetAllHotelUsers(int hotelId, string currentUserId)
-    {
-        return await _db.UserHotelRoles
-            .Where(r => r.HotelId == hotelId && r.UserId != currentUserId)
-            .Include(r => r.User)
-            .Select(r => r.User)
-            .Distinct()
-            .OrderBy(u => u.FirstName)
-            .ThenBy(u => u.LastName)
-            .ToListAsync();
-    }
+public class SendMessageRequest
+{
+    public string ToUserId { get; set; } = "";
+    public string Body { get; set; } = "";
+}
 
-    private static List<string> GetDeptPatterns(string? dept)
-    {
-        return dept?.ToLower() switch
-        {
-            "sales" => new List<string> { "sales" },
-            "engineering" => new List<string> { "engineering", "maintenance" },
-            "frontdesk" => new List<string> { "front desk" },
-            "housekeeping" => new List<string> { "housekeeping" },
-            "administrative" => new List<string> { "administrative" },
-            _ => new List<string>()
-        };
-    }
+public class MarkReadRequest
+{
+    public string UserId { get; set; } = "";
+}
 
-    private static string? GetDeptDisplayName(string? dept)
-    {
-        return dept?.ToLower() switch
-        {
-            "sales" => "Sales",
-            "engineering" => "Engineering",
-            "frontdesk" => "Front Desk",
-            "housekeeping" => "Housekeeping",
-            "administrative" => "Administrative",
-            _ => null
-        };
-    }
+public class SendAnnouncementRequest
+{
+    public string Subject { get; set; } = "";
+    public string Body { get; set; } = "";
+    public List<int>? DepartmentIds { get; set; }
+}
+
+public class MarkAnnouncementReadRequest
+{
+    public int MessageId { get; set; }
 }

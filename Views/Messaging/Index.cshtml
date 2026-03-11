@@ -1,268 +1,483 @@
 @using MyHotel.Web.Models.Entities
-@model List<Message>
 @{
     ViewData["Title"] = "Messages";
-    var currentTab = (string)ViewBag.CurrentTab;
-    var unreadCount = (int)ViewBag.UnreadCount;
-    var hotelUsers = (List<ApplicationUser>)ViewBag.HotelUsers;
     var currentUserId = (string)ViewBag.CurrentUserId;
+    var currentUserName = (string)ViewBag.CurrentUserName;
+    var isGMOrAGM = (bool)ViewBag.IsGMOrAGM;
+    var hotelUsers = (List<ApplicationUser>)ViewBag.HotelUsers;
+    var departments = (List<Department>)ViewBag.Departments;
+    var tab = (string)ViewBag.Tab;
+    var preselectedUserId = ViewBag.PreselectedUserId as string ?? "";
+    var unreadDM = (int)ViewBag.UnreadDMCount;
+    var unreadAnn = (int)ViewBag.UnreadAnnouncementCount;
 }
 
-<!-- Header -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-    <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-gray-900">@(ViewBag.DeptName != null ? $"{ViewBag.DeptName} Messages" : "Messages")</h1>
-        @if (unreadCount > 0)
-        {
-            <span class="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">@unreadCount unread</span>
-        }
-    </div>
-</div>
-
-<!-- Send Message Form -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-    <div class="flex items-center gap-4 mb-4">
-        <h3 class="text-sm font-semibold text-gray-700">New Message</h3>
-        <div class="flex gap-2">
-            <button onclick="toggleMessageType('direct')" id="btn-direct"
-                    class="px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 text-white">
-                Direct Message
+<div x-data="messagingApp()" x-init="init()" class="flex h-[calc(100vh-5rem)] -mt-2 -mx-4 sm:-mx-6 lg:-mx-8">
+    <!-- LEFT SIDEBAR -->
+    <div class="w-80 border-r border-gray-200 bg-white flex flex-col flex-shrink-0"
+         :class="{'hidden lg:flex': selectedUserId || selectedAnnouncement || creatingAnnouncement}">
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200">
+            <button @@click="activeTab='chats'; selectedAnnouncement=null; creatingAnnouncement=false"
+                    :class="activeTab==='chats' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
+                    class="flex-1 py-3 text-sm font-semibold relative">
+                Chats
+                <span x-show="totalUnreadDM > 0" x-text="totalUnreadDM"
+                      class="absolute top-1.5 ml-1 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center"></span>
             </button>
-            <button onclick="toggleMessageType('announcement')" id="btn-announcement"
-                    class="px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200">
-                Announcement
+            <button @@click="activeTab='announcements'; selectedUserId=null; messages=[]"
+                    :class="activeTab==='announcements' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500'"
+                    class="flex-1 py-3 text-sm font-semibold relative">
+                Announcements
+                <span x-show="unreadAnnouncementCount > 0" x-text="unreadAnnouncementCount"
+                      class="absolute top-1.5 ml-1 bg-purple-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center"></span>
             </button>
         </div>
-    </div>
 
-    <form method="post" action="/Messaging/Send" id="message-form">
-        @Html.AntiForgeryToken()
-        <!-- Direct Message Fields -->
-        <div id="direct-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <div>
-                <label class="text-xs text-gray-600 block mb-1">Recipient *</label>
-                <select name="toUserId" id="toUserId-select"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="">Select recipient...</option>
-                    @foreach (var user in hotelUsers)
+        <!-- Search -->
+        <div class="p-3" x-show="activeTab==='chats'">
+            <input type="text" x-model="searchQuery" placeholder="Search contacts..."
+                   class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+        </div>
+
+        <!-- CHATS LIST -->
+        <div class="flex-1 overflow-y-auto" x-show="activeTab==='chats'">
+            <!-- New Chat button -->
+            <div class="px-3 pb-2">
+                <button @@click="showNewChat = !showNewChat"
+                        class="w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    New Chat
+                </button>
+            </div>
+
+            <!-- New Chat user picker -->
+            <div x-show="showNewChat" x-transition class="px-3 pb-3">
+                <select @@change="startNewChat($event.target.value); $event.target.value=''"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="">Select a person...</option>
+                    @foreach (var u in hotelUsers)
                     {
-                        <option value="@user.Id">@user.FullName (@user.Email)</option>
+                        <option value="@u.Id">@u.FullName</option>
                     }
                 </select>
             </div>
-            <div>
-                <label class="text-xs text-gray-600 block mb-1">Subject *</label>
-                <input type="text" name="subject" id="subject-direct" required placeholder="Message subject"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-        </div>
 
-        <!-- Announcement Fields (hidden by default) -->
-        <div id="announcement-fields" class="hidden mb-3">
-            <div>
-                <label class="text-xs text-gray-600 block mb-1">Subject *</label>
-                <input type="text" id="subject-announcement" placeholder="Announcement subject"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            </div>
-        </div>
-
-        <input type="hidden" name="isAnnouncement" id="isAnnouncement" value="false" />
-        @if (ViewBag.CurrentDept != null)
-        {
-            <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-        }
-
-        <div class="mb-3">
-            <label class="text-xs text-gray-600 block mb-1">Message *</label>
-            <textarea name="body" required rows="3" placeholder="Type your message..."
-                      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"></textarea>
-        </div>
-
-        <div class="flex justify-end">
-            <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                Send
-            </button>
-        </div>
-    </form>
-</div>
-
-<!-- Tab Bar -->
-<div class="flex gap-2 mb-6">
-    @{
-        var deptParam = ViewBag.CurrentDept != null ? $"&dept={ViewBag.CurrentDept}" : "";
-    }
-    <a href="/Messaging?tab=inbox@(deptParam)"
-       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "inbox" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
-        Inbox
-        @if (unreadCount > 0)
-        {
-            <span class="ml-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full @(currentTab == "inbox" ? "bg-blue-500" : "bg-blue-100 text-blue-700")">@unreadCount</span>
-        }
-    </a>
-    <a href="/Messaging?tab=sent@(deptParam)"
-       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "sent" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
-        Sent
-    </a>
-    <a href="/Messaging?tab=announcements@(deptParam)"
-       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors @(currentTab == "announcements" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200")">
-        Announcements
-    </a>
-</div>
-
-<!-- Message List -->
-@if (!Model.Any())
-{
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-        <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        <p class="text-gray-500 text-sm">
-            @(currentTab == "inbox" ? "No messages in your inbox." :
-              currentTab == "sent" ? "You haven't sent any messages yet." :
-              "No announcements yet.")
-        </p>
-    </div>
-}
-else
-{
-    <div class="space-y-3">
-        @foreach (var msg in Model)
-        {
-            var isUnread = !msg.IsRead && currentTab == "inbox";
-            var bodyPreview = msg.Body.Length > 120 ? msg.Body.Substring(0, 120) + "..." : msg.Body;
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 @(isUnread ? "border-l-4 border-l-blue-500" : "") overflow-hidden">
-                <div class="flex items-start gap-4 p-4">
-                    <!-- Avatar -->
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 @(msg.IsAnnouncement ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700")">
-                        @if (msg.IsAnnouncement)
-                        {
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                            </svg>
-                        }
-                        else
-                        {
-                            @(msg.FromUser?.FirstName?.Substring(0, 1))@(msg.FromUser?.LastName?.Substring(0, 1))
-                        }
-                    </div>
-
-                    <!-- Content -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            @if (msg.IsAnnouncement)
-                            {
-                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Announcement</span>
-                            }
-                            <h4 class="font-semibold text-gray-900 truncate @(isUnread ? "text-blue-900" : "")">@msg.Subject</h4>
+            <!-- Conversation list -->
+            <template x-for="conv in filteredConversations" :key="conv.userId">
+                <div @@click="selectConversation(conv.userId, conv.fullName, conv.initials)"
+                     :class="selectedUserId === conv.userId ? 'bg-blue-50 border-l-2 border-l-blue-600' : 'hover:bg-gray-50 border-l-2 border-l-transparent'"
+                     class="px-4 py-3 cursor-pointer transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0"
+                             x-text="conv.initials"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-semibold text-gray-900 truncate" x-text="conv.fullName"></span>
+                                <span class="text-xs text-gray-400 flex-shrink-0" x-text="formatShortTime(conv.lastMessageAt)"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <p class="text-xs text-gray-500 truncate" x-text="(conv.isMine ? 'You: ' : '') + conv.lastMessage"></p>
+                                <span x-show="conv.unreadCount > 0" x-text="conv.unreadCount"
+                                      class="bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center flex-shrink-0 ml-2"></span>
+                            </div>
                         </div>
-
-                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                            @if (currentTab == "inbox" || currentTab == "announcements")
-                            {
-                                <span>From: <span class="font-medium text-gray-700">@(msg.FromUser?.FullName ?? "Unknown")</span></span>
-                            }
-                            @if (currentTab == "sent" && !msg.IsAnnouncement)
-                            {
-                                <span>To: <span class="font-medium text-gray-700">@(msg.ToUser?.FullName ?? "Unknown")</span></span>
-                            }
-                            <span class="text-gray-300">|</span>
-                            <span>@msg.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</span>
-                            @if (currentTab == "inbox")
-                            {
-                                @if (msg.IsRead)
-                                {
-                                    <span class="text-green-500 text-xs">Read</span>
-                                }
-                                else
-                                {
-                                    <span class="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">New</span>
-                                }
-                            }
-                        </div>
-
-                        <p class="text-sm text-gray-600 @(isUnread ? "font-medium" : "")">@bodyPreview</p>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex items-center gap-1 flex-shrink-0">
-                        @if (currentTab == "inbox" && !msg.IsRead)
-                        {
-                            <form method="post" action="/Messaging/MarkAsRead" class="inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@msg.Id" />
-                                @if (ViewBag.CurrentDept != null)
-                                {
-                                    <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-                                }
-                                <button type="submit" class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium transition-colors"
-                                        title="Mark as read">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </button>
-                            </form>
-                        }
-                        <form method="post" action="/Messaging/Delete" class="inline"
-                              onsubmit="return confirm('Delete this message?')">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@msg.Id" />
-                            @if (ViewBag.CurrentDept != null)
-                            {
-                                <input type="hidden" name="dept" value="@ViewBag.CurrentDept" />
-                            }
-                            <button type="submit" class="text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded text-xs transition-colors"
-                                    title="Delete">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </form>
                     </div>
                 </div>
+            </template>
+
+            <div x-show="conversations.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
+                No conversations yet
             </div>
-        }
+        </div>
+
+        <!-- ANNOUNCEMENTS LIST -->
+        <div class="flex-1 overflow-y-auto" x-show="activeTab==='announcements'">
+            @if (isGMOrAGM)
+            {
+                <div class="px-3 py-2">
+                    <button @@click="creatingAnnouncement=true; selectedAnnouncement=null"
+                            class="w-full px-3 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                        New Announcement
+                    </button>
+                </div>
+            }
+
+            <template x-for="ann in announcements" :key="ann.id">
+                <div @@click="viewAnnouncement(ann)"
+                     :class="selectedAnnouncement?.id === ann.id ? 'bg-purple-50 border-l-2 border-l-purple-600' : 'hover:bg-gray-50 border-l-2 border-l-transparent'"
+                     class="px-4 py-3 cursor-pointer transition-colors">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
+                             x-text="ann.fromInitials"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span x-show="!ann.isRead" class="w-2 h-2 bg-purple-600 rounded-full flex-shrink-0"></span>
+                                <span class="text-sm font-semibold text-gray-900 truncate" :class="!ann.isRead && 'text-purple-900'" x-text="ann.subject"></span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-0.5" x-text="ann.fromName + ' · ' + formatShortTime(ann.createdAt)"></p>
+                            <p class="text-xs mt-0.5" x-show="ann.isAllHotel" class="text-gray-400">All Hotel</p>
+                            <p class="text-xs mt-0.5 text-purple-500" x-show="!ann.isAllHotel" x-text="ann.departments.join(', ')"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <div x-show="announcements.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
+                No announcements yet
+            </div>
+        </div>
     </div>
-}
+
+    <!-- RIGHT PANEL -->
+    <div class="flex-1 flex flex-col bg-gray-50"
+         :class="{'hidden lg:flex': !selectedUserId && !selectedAnnouncement && !creatingAnnouncement}">
+
+        <!-- CHAT VIEW -->
+        <template x-if="activeTab==='chats' && selectedUserId">
+            <div class="flex flex-col h-full">
+                <!-- Header -->
+                <div class="px-4 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+                    <button @@click="selectedUserId=null; messages=[]" class="lg:hidden text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold"
+                         x-text="selectedUserInitials"></div>
+                    <h2 class="font-semibold text-gray-900" x-text="selectedUserName"></h2>
+                </div>
+
+                <!-- Messages -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-2" id="messages-container">
+                    <!-- Date separators and messages -->
+                    <template x-for="(msg, idx) in messages" :key="msg.id">
+                        <div>
+                            <!-- Date separator -->
+                            <div x-show="idx === 0 || getDateStr(messages[idx-1]?.createdAt) !== getDateStr(msg.createdAt)"
+                                 class="flex items-center justify-center my-4">
+                                <span class="bg-gray-200 text-gray-500 text-xs px-3 py-1 rounded-full" x-text="formatDate(msg.createdAt)"></span>
+                            </div>
+                            <!-- Bubble -->
+                            <div :class="msg.fromUserId === currentUserId ? 'ml-auto bg-blue-600 text-white rounded-2xl rounded-br-sm' : 'mr-auto bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-bl-sm'"
+                                 class="max-w-[75%] px-4 py-2 w-fit">
+                                <p class="text-sm whitespace-pre-wrap" x-text="msg.body"></p>
+                                <p class="text-xs mt-1 opacity-60" x-text="formatTime(msg.createdAt)"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="messages.length === 0" class="flex items-center justify-center h-full text-gray-400 text-sm">
+                        Start the conversation
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="p-3 bg-white border-t border-gray-200">
+                    <form @@submit.prevent="sendMessage()" class="flex gap-2">
+                        <input x-model="newMessage" placeholder="Type a message..."
+                               x-ref="chatInput"
+                               class="flex-1 px-4 py-2.5 border border-gray-200 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        <button type="submit" :disabled="!newMessage.trim()"
+                                class="px-5 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Send
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </template>
+
+        <!-- ANNOUNCEMENT DETAIL VIEW -->
+        <template x-if="activeTab==='announcements' && selectedAnnouncement && !creatingAnnouncement">
+            <div class="flex flex-col h-full">
+                <div class="px-4 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+                    <button @@click="selectedAnnouncement=null" class="lg:hidden text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-gray-900" x-text="selectedAnnouncement.subject"></h2>
+                        <p class="text-xs text-gray-500" x-text="selectedAnnouncement.fromName + ' · ' + formatDate(selectedAnnouncement.createdAt)"></p>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div x-show="selectedAnnouncement.isAllHotel" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 mb-4">All Hotel</div>
+                    <div x-show="!selectedAnnouncement.isAllHotel" class="flex flex-wrap gap-2 mb-4">
+                        <template x-for="dept in selectedAnnouncement.departments">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700" x-text="dept"></span>
+                        </template>
+                    </div>
+                    <div class="bg-white rounded-xl border border-gray-200 p-6">
+                        <p class="text-gray-800 whitespace-pre-wrap" x-text="selectedAnnouncement.body"></p>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4" x-text="formatTime(selectedAnnouncement.createdAt)"></p>
+                </div>
+            </div>
+        </template>
+
+        <!-- CREATE ANNOUNCEMENT -->
+        <template x-if="activeTab==='announcements' && creatingAnnouncement">
+            <div class="flex flex-col h-full">
+                <div class="px-4 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+                    <button @@click="creatingAnnouncement=false" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <h2 class="font-semibold text-gray-900">New Announcement</h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                        <input type="text" x-model="annForm.subject" placeholder="Announcement title..."
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                        <textarea x-model="annForm.body" rows="6" placeholder="Write your announcement..."
+                                  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" x-model="annForm.targetAll" value="true" class="text-purple-600" />
+                                <span class="text-sm text-gray-700">All Hotel</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" x-model="annForm.targetAll" value="false" class="text-purple-600" />
+                                <span class="text-sm text-gray-700">Specific Departments</span>
+                            </label>
+                        </div>
+                        <div x-show="annForm.targetAll === 'false'" x-transition class="mt-3 ml-6 space-y-2">
+                            @foreach (var dept in departments)
+                            {
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" value="@dept.Id" x-model="annForm.departmentIds" class="text-purple-600 rounded" />
+                                    <span class="text-sm text-gray-600">@dept.Name</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-white border-t border-gray-200">
+                    <button @@click="sendAnnouncement()" :disabled="!annForm.subject.trim() || !annForm.body.trim()"
+                            class="w-full px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50">
+                        Post Announcement
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <!-- EMPTY STATE -->
+        <template x-if="(activeTab==='chats' && !selectedUserId) || (activeTab==='announcements' && !selectedAnnouncement && !creatingAnnouncement)">
+            <div class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p class="text-gray-400 text-sm" x-text="activeTab==='chats' ? 'Select a conversation or start a new chat' : 'Select an announcement to read'"></p>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
 
 @section Scripts {
-    <script>
-        function toggleMessageType(type) {
-            const directFields = document.getElementById('direct-fields');
-            const announcementFields = document.getElementById('announcement-fields');
-            const isAnnouncementInput = document.getElementById('isAnnouncement');
-            const btnDirect = document.getElementById('btn-direct');
-            const btnAnnouncement = document.getElementById('btn-announcement');
-            const subjectDirect = document.getElementById('subject-direct');
-            const subjectAnnouncement = document.getElementById('subject-announcement');
-            const toUserSelect = document.getElementById('toUserId-select');
+<script>
+function messagingApp() {
+    return {
+        activeTab: '@tab',
+        currentUserId: '@currentUserId',
+        isGMOrAGM: @(isGMOrAGM ? "true" : "false"),
 
-            if (type === 'announcement') {
-                directFields.classList.add('hidden');
-                announcementFields.classList.remove('hidden');
-                isAnnouncementInput.value = 'true';
-                btnAnnouncement.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-purple-600 text-white';
-                btnDirect.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200';
+        // Chats
+        conversations: [],
+        selectedUserId: null,
+        selectedUserName: '',
+        selectedUserInitials: '',
+        messages: [],
+        newMessage: '',
+        searchQuery: '',
+        showNewChat: false,
+        totalUnreadDM: @unreadDM,
 
-                // Swap subject field names
-                subjectDirect.removeAttribute('name');
-                subjectDirect.removeAttribute('required');
-                subjectAnnouncement.setAttribute('name', 'subject');
-                subjectAnnouncement.setAttribute('required', 'required');
-                toUserSelect.removeAttribute('required');
-            } else {
-                directFields.classList.remove('hidden');
-                announcementFields.classList.add('hidden');
-                isAnnouncementInput.value = 'false';
-                btnDirect.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 text-white';
-                btnAnnouncement.className = 'px-3 py-1 rounded text-xs font-medium transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200';
+        // Announcements
+        announcements: [],
+        selectedAnnouncement: null,
+        creatingAnnouncement: false,
+        unreadAnnouncementCount: @unreadAnn,
+        annForm: { subject: '', body: '', targetAll: 'true', departmentIds: [] },
 
-                // Swap subject field names
-                subjectAnnouncement.removeAttribute('name');
-                subjectAnnouncement.removeAttribute('required');
-                subjectDirect.setAttribute('name', 'subject');
-                subjectDirect.setAttribute('required', 'required');
+        get filteredConversations() {
+            if (!this.searchQuery) return this.conversations;
+            var q = this.searchQuery.toLowerCase();
+            return this.conversations.filter(c => c.fullName.toLowerCase().includes(q));
+        },
+
+        async init() {
+            await this.loadConversations();
+            if (this.activeTab === 'announcements') {
+                await this.loadAnnouncements();
             }
+            var preselect = '@preselectedUserId';
+            if (preselect) {
+                var conv = this.conversations.find(c => c.userId === preselect);
+                if (conv) {
+                    await this.selectConversation(conv.userId, conv.fullName, conv.initials);
+                } else {
+                    // New conversation with this user
+                    await this.startNewChat(preselect);
+                }
+            }
+            // Poll every 15s
+            setInterval(() => this.refresh(), 15000);
+        },
+
+        async refresh() {
+            await this.loadConversations();
+            if (this.selectedUserId) {
+                var res = await fetch('/Messaging/GetConversation?userId=' + this.selectedUserId);
+                this.messages = await res.json();
+            }
+            if (this.activeTab === 'announcements') {
+                await this.loadAnnouncements();
+            }
+        },
+
+        async loadConversations() {
+            var res = await fetch('/Messaging/GetConversationList');
+            this.conversations = await res.json();
+            this.totalUnreadDM = this.conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+        },
+
+        async selectConversation(userId, name, initials) {
+            this.selectedUserId = userId;
+            this.selectedUserName = name || '';
+            this.selectedUserInitials = initials || '';
+            this.showNewChat = false;
+
+            var res = await fetch('/Messaging/GetConversation?userId=' + userId);
+            this.messages = await res.json();
+
+            // Mark as read
+            await fetch('/Messaging/MarkConversationRead', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            var conv = this.conversations.find(c => c.userId === userId);
+            if (conv) {
+                this.totalUnreadDM -= conv.unreadCount;
+                conv.unreadCount = 0;
+            }
+
+            this.$nextTick(() => this.scrollToBottom());
+            this.$nextTick(() => { if (this.$refs.chatInput) this.$refs.chatInput.focus(); });
+        },
+
+        async startNewChat(userId) {
+            if (!userId) return;
+            // Find user info from the select options
+            var option = document.querySelector('select option[value="' + userId + '"]');
+            var name = option ? option.textContent : 'User';
+            var parts = name.trim().split(' ');
+            var initials = (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
+            await this.selectConversation(userId, name.trim(), initials.toUpperCase());
+        },
+
+        async sendMessage() {
+            if (!this.newMessage.trim() || !this.selectedUserId) return;
+            var body = this.newMessage.trim();
+            this.newMessage = '';
+
+            var res = await fetch('/Messaging/SendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ toUserId: this.selectedUserId, body: body })
+            });
+            var msg = await res.json();
+            this.messages.push(msg);
+            this.$nextTick(() => this.scrollToBottom());
+            await this.loadConversations();
+        },
+
+        async loadAnnouncements() {
+            var res = await fetch('/Messaging/GetAnnouncements');
+            this.announcements = await res.json();
+            this.unreadAnnouncementCount = this.announcements.filter(a => !a.isRead).length;
+        },
+
+        async viewAnnouncement(ann) {
+            this.selectedAnnouncement = ann;
+            this.creatingAnnouncement = false;
+            if (!ann.isRead) {
+                await fetch('/Messaging/MarkAnnouncementRead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messageId: ann.id })
+                });
+                ann.isRead = true;
+                this.unreadAnnouncementCount = this.announcements.filter(a => !a.isRead).length;
+            }
+        },
+
+        async sendAnnouncement() {
+            if (!this.annForm.subject.trim() || !this.annForm.body.trim()) return;
+            var deptIds = this.annForm.targetAll === 'true' ? [] : this.annForm.departmentIds.map(Number);
+
+            await fetch('/Messaging/SendAnnouncement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: this.annForm.subject,
+                    body: this.annForm.body,
+                    departmentIds: deptIds
+                })
+            });
+
+            this.annForm = { subject: '', body: '', targetAll: 'true', departmentIds: [] };
+            this.creatingAnnouncement = false;
+            await this.loadAnnouncements();
+        },
+
+        scrollToBottom() {
+            var c = document.getElementById('messages-container');
+            if (c) c.scrollTop = c.scrollHeight;
+        },
+
+        formatTime(dateStr) {
+            var d = new Date(dateStr);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        },
+
+        formatShortTime(dateStr) {
+            var d = new Date(dateStr);
+            var now = new Date();
+            if (d.toDateString() === now.toDateString()) {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            var yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        },
+
+        formatDate(dateStr) {
+            var d = new Date(dateStr);
+            var now = new Date();
+            if (d.toDateString() === now.toDateString()) return 'Today';
+            var yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+            return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        },
+
+        getDateStr(dateStr) {
+            if (!dateStr) return '';
+            return new Date(dateStr).toDateString();
         }
-    </script>
+    }
+}
+</script>
 }

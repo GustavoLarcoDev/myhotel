@@ -73,7 +73,7 @@ public class WorkOrdersController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(string room, string description, string priority, string assignedTo, string createdBy)
+    public async Task<IActionResult> Create(string room, string description, string priority, string assignedTo)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -84,6 +84,8 @@ public class WorkOrdersController : Controller
             return RedirectToAction("Index");
         }
 
+        var user = await _userManager.GetUserAsync(User);
+
         var workOrder = new WorkOrder
         {
             HotelId = hotelId.Value,
@@ -91,7 +93,7 @@ public class WorkOrdersController : Controller
             Description = description.Trim(),
             Priority = string.IsNullOrWhiteSpace(priority) ? "normal" : priority.Trim(),
             AssignedTo = string.IsNullOrWhiteSpace(assignedTo) ? null : assignedTo.Trim(),
-            CreatedBy = string.IsNullOrWhiteSpace(createdBy) ? "System" : createdBy.Trim(),
+            CreatedBy = user?.FullName ?? "Unknown",
             Status = "pending",
             CreatedAt = DateTime.UtcNow
         };
@@ -105,7 +107,6 @@ public class WorkOrdersController : Controller
                 (d.Name.ToLower().Contains("engineering") || d.Name.ToLower().Contains("maintenance")));
         if (engDept != null)
         {
-            var user = await _userManager.GetUserAsync(User);
             await _notifications.NotifyDepartmentAsync(
                 hotelId.Value, engDept.Id,
                 $"New Work Order: {workOrder.Room ?? "General"}",

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyHotel.Web.Data;
@@ -13,11 +14,14 @@ public class ReadingsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly HotelContextService _hotelContext;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ReadingsController(ApplicationDbContext db, HotelContextService hotelContext)
+    public ReadingsController(ApplicationDbContext db, HotelContextService hotelContext,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _hotelContext = hotelContext;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -51,10 +55,12 @@ public class ReadingsController : Controller
 
     [HttpPost("Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string type, decimal value, string unit, string? location, string recordedBy, string? notes)
+    public async Task<IActionResult> Create(string type, decimal value, string unit, string? location, string? notes)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Login", "Account");
+
+        var user = await _userManager.GetUserAsync(User);
 
         var reading = new Reading
         {
@@ -63,7 +69,7 @@ public class ReadingsController : Controller
             Value = value,
             Unit = unit,
             Location = location,
-            RecordedBy = recordedBy,
+            RecordedBy = user?.FullName ?? "Unknown",
             Notes = notes,
             CreatedAt = DateTime.UtcNow
         };

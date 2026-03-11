@@ -72,7 +72,7 @@ public class ComplaintsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(string guestName, string room, string description, string createdBy)
+    public async Task<IActionResult> Create(string guestName, string room, string description)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -83,6 +83,8 @@ public class ComplaintsController : Controller
             return RedirectToAction("Index");
         }
 
+        var user = await _userManager.GetUserAsync(User);
+
         var complaint = new Complaint
         {
             HotelId = hotelId.Value,
@@ -90,15 +92,12 @@ public class ComplaintsController : Controller
             Room = string.IsNullOrWhiteSpace(room) ? null : room.Trim(),
             Description = description.Trim(),
             Status = "open",
-            CreatedBy = string.IsNullOrWhiteSpace(createdBy) ? "System" : createdBy.Trim(),
+            CreatedBy = user?.FullName ?? "Unknown",
             CreatedAt = DateTime.UtcNow
         };
 
         _db.Complaints.Add(complaint);
         await _db.SaveChangesAsync();
-
-        // Notify GMs about the new complaint
-        var user = await _userManager.GetUserAsync(User);
         var gmUserIds = await _db.UserHotelRoles
             .Where(r => r.HotelId == hotelId.Value &&
                         (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))

@@ -12,12 +12,13 @@
                 <a href="/FrontDesk" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
-                <h1 class="text-2xl font-bold text-gray-900">Cash Reports</h1>
+                <h1 class="text-2xl font-bold text-gray-900">Cash Logs</h1>
             </div>
-            <p class="text-sm text-gray-500 mt-1 ml-8">@Model.Count report(s) found</p>
+            <p class="text-sm text-gray-500 mt-1 ml-8">@Model.Count log(s) found</p>
         </div>
-        <a href="/FrontDesk/CreateCashReport" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap">
-            New Cash Report
+        <a href="/FrontDesk/CreateCashReport" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            New Cash Log
         </a>
     </div>
 
@@ -35,75 +36,103 @@
         </form>
     </div>
 
-    <!-- Table -->
+    <!-- Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">@TempData["Error"]</div>
+    }
+
+    <!-- Cash Logs -->
     @if (!Model.Any())
     {
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <p class="text-gray-400 text-sm">No cash reports found.</p>
+            <p class="text-gray-400 text-sm">No cash logs found.</p>
             <a href="/FrontDesk/CreateCashReport" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">Create one now</a>
         </div>
     }
     else
     {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-100 bg-gray-50">
-                            <th class="text-left px-4 py-3 font-medium text-gray-500">Date</th>
-                            <th class="text-left px-4 py-3 font-medium text-gray-500">Shift</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">Opening</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">Closing</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">Cash In</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">Cash Out</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">CC Total</th>
-                            <th class="text-right px-4 py-3 font-medium text-gray-500">Variance</th>
-                            <th class="text-left px-4 py-3 font-medium text-gray-500">By</th>
-                            <th class="text-center px-4 py-3 font-medium text-gray-500">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach (var r in Model)
-                        {
-                            var shiftColor = r.Shift switch
-                            {
-                                "AM" => "bg-yellow-100 text-yellow-700",
-                                "PM" => "bg-blue-100 text-blue-700",
-                                "Night" => "bg-indigo-100 text-indigo-700",
-                                _ => "bg-gray-100 text-gray-700"
-                            };
+        <div class="space-y-4">
+            @{ var prevTotal = 0m; var isFirst = true; }
+            @foreach (var r in Model)
+            {
+                var shiftColor = r.Shift switch
+                {
+                    "AM" => "bg-yellow-100 text-yellow-700",
+                    "PM" => "bg-blue-100 text-blue-700",
+                    "Night" => "bg-indigo-100 text-indigo-700",
+                    _ => "bg-gray-100 text-gray-700"
+                };
+                var hasBills = r.Bills100 > 0 || r.Bills50 > 0 || r.Bills20 > 0 || r.Bills10 > 0 || r.Bills5 > 0 || r.Bills1 > 0 ||
+                               r.Coins25 > 0 || r.Coins10 > 0 || r.Coins5 > 0 || r.Coins1 > 0 ||
+                               r.Rolls25 > 0 || r.Rolls10 > 0 || r.Rolls5 > 0 || r.Rolls1 > 0;
 
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-gray-900 font-medium">@r.Date</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @shiftColor">@r.Shift</span>
-                                </td>
-                                <td class="px-4 py-3 text-right text-gray-700 font-mono">@r.OpeningBalance.ToString("N2")</td>
-                                <td class="px-4 py-3 text-right text-gray-700 font-mono">@r.ClosingBalance.ToString("N2")</td>
-                                <td class="px-4 py-3 text-right text-green-700 font-mono">@r.CashIn.ToString("N2")</td>
-                                <td class="px-4 py-3 text-right text-red-700 font-mono">@r.CashOut.ToString("N2")</td>
-                                <td class="px-4 py-3 text-right text-gray-700 font-mono">@r.CreditCardTotal.ToString("N2")</td>
-                                <td class="px-4 py-3 text-right font-mono font-medium @(r.Variance < 0 ? "text-red-600" : r.Variance > 0 ? "text-green-600" : "text-gray-500")">
-                                    @(r.Variance >= 0 ? "+" : "")@r.Variance.ToString("N2")
-                                </td>
-                                <td class="px-4 py-3 text-gray-500 text-xs">@r.CreatedBy</td>
-                                <td class="px-4 py-3 text-center">
-                                    <a href="/FrontDesk/EditCashReport/@r.Id" class="text-blue-600 hover:text-blue-700 text-xs font-medium">Edit</a>
-                                </td>
-                            </tr>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <!-- Header row -->
+                    <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold @shiftColor">@r.Shift</span>
+                            <span class="text-sm font-medium text-gray-700">@r.Date</span>
+                            <span class="text-xs text-gray-400">@r.CreatedAt.ToString("h:mm tt")</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-2xl font-extrabold text-gray-900">@r.CashTotal.ToString("C2")</p>
+                                <p class="text-xs text-gray-400">Cash in drawer</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bill breakdown -->
+                    @if (hasBills)
+                    {
+                        <div class="px-5 py-3 bg-gray-50 border-t border-gray-100">
+                            <div class="flex flex-wrap gap-2">
+                                @if (r.Bills100 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$100 <span class="font-bold">x @r.Bills100</span> = $@((r.Bills100 * 100).ToString("N0"))</span> }
+                                @if (r.Bills50 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$50 <span class="font-bold">x @r.Bills50</span> = $@((r.Bills50 * 50).ToString("N0"))</span> }
+                                @if (r.Bills20 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$20 <span class="font-bold">x @r.Bills20</span> = $@((r.Bills20 * 20).ToString("N0"))</span> }
+                                @if (r.Bills10 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$10 <span class="font-bold">x @r.Bills10</span> = $@((r.Bills10 * 10).ToString("N0"))</span> }
+                                @if (r.Bills5 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$5 <span class="font-bold">x @r.Bills5</span> = $@((r.Bills5 * 5).ToString("N0"))</span> }
+                                @if (r.Bills1 > 0) { <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-lg">$1 <span class="font-bold">x @r.Bills1</span> = $@r.Bills1</span> }
+                                @if (r.Coins25 > 0) { <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-1 rounded-lg">25c <span class="font-bold">x @r.Coins25</span> = $@((r.Coins25 * 0.25m).ToString("N2"))</span> }
+                                @if (r.Coins10 > 0) { <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-1 rounded-lg">10c <span class="font-bold">x @r.Coins10</span> = $@((r.Coins10 * 0.10m).ToString("N2"))</span> }
+                                @if (r.Coins5 > 0) { <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-1 rounded-lg">5c <span class="font-bold">x @r.Coins5</span> = $@((r.Coins5 * 0.05m).ToString("N2"))</span> }
+                                @if (r.Coins1 > 0) { <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-1 rounded-lg">1c <span class="font-bold">x @r.Coins1</span> = $@((r.Coins1 * 0.01m).ToString("N2"))</span> }
+                                @if (r.Rolls25 > 0) { <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-lg">Quarter Roll <span class="font-bold">x @r.Rolls25</span> = $@((r.Rolls25 * 10).ToString("N0"))</span> }
+                                @if (r.Rolls10 > 0) { <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-lg">Dime Roll <span class="font-bold">x @r.Rolls10</span> = $@((r.Rolls10 * 5).ToString("N0"))</span> }
+                                @if (r.Rolls5 > 0) { <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-lg">Nickel Roll <span class="font-bold">x @r.Rolls5</span> = $@((r.Rolls5 * 2).ToString("N0"))</span> }
+                                @if (r.Rolls1 > 0) { <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-lg">Penny Roll <span class="font-bold">x @r.Rolls1</span> = $@((r.Rolls1 * 0.50m).ToString("N2"))</span> }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Footer -->
+                    <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-3 text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                @r.CreatedBy
+                            </span>
                             @if (!string.IsNullOrWhiteSpace(r.Notes))
                             {
-                                <tr class="bg-gray-50/50">
-                                    <td colspan="10" class="px-4 py-2 text-xs text-gray-500">
-                                        <span class="font-medium">Notes:</span> @r.Notes
-                                    </td>
-                                </tr>
+                                <span class="text-gray-400">|</span>
+                                <span class="italic">@r.Notes</span>
                             }
+                        </div>
+                        @if (r.Variance != 0)
+                        {
+                            <span class="font-medium @(r.Variance < 0 ? "text-red-600" : "text-green-600")">
+                                Diff: @(r.Variance >= 0 ? "+" : "")@r.Variance.ToString("C2")
+                            </span>
                         }
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                </div>
+            }
         </div>
     }
 </div>

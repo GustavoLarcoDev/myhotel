@@ -75,7 +75,7 @@ public class LostFoundController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(string itemDescription, string? location, string? foundBy, string? storageLocation)
+    public async Task<IActionResult> Create(string itemDescription, string? location, string? storageLocation)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -86,22 +86,21 @@ public class LostFoundController : Controller
             return RedirectToAction("Index");
         }
 
+        var user = await _userManager.GetUserAsync(User);
+
         var item = new LostFound
         {
             HotelId = hotelId.Value,
             ItemDescription = itemDescription.Trim(),
             Location = string.IsNullOrWhiteSpace(location) ? null : location.Trim(),
             Status = "found",
-            FoundBy = string.IsNullOrWhiteSpace(foundBy) ? null : foundBy.Trim(),
+            FoundBy = user?.FullName ?? "Unknown",
             StorageLocation = string.IsNullOrWhiteSpace(storageLocation) ? null : storageLocation.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
         _db.LostFoundItems.Add(item);
         await _db.SaveChangesAsync();
-
-        // Notify GMs about the new lost item
-        var user = await _userManager.GetUserAsync(User);
         var gmUserIds = await _db.UserHotelRoles
             .Where(r => r.HotelId == hotelId.Value &&
                         (r.Role == AppRole.GeneralManager || r.Role == AppRole.AssistantGM))
@@ -126,7 +125,7 @@ public class LostFoundController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Claim(int id, string? claimedBy, string? guestName)
+    public async Task<IActionResult> Claim(int id, string? guestName)
     {
         var hotelId = _hotelContext.CurrentHotelId;
         if (hotelId == null) return RedirectToAction("Index", "Home");
@@ -139,8 +138,9 @@ public class LostFoundController : Controller
             return RedirectToAction("Index");
         }
 
+        var user = await _userManager.GetUserAsync(User);
         item.Status = "claimed";
-        item.ClaimedBy = string.IsNullOrWhiteSpace(claimedBy) ? null : claimedBy.Trim();
+        item.ClaimedBy = user?.FullName ?? "Unknown";
         item.GuestName = string.IsNullOrWhiteSpace(guestName) ? null : guestName.Trim();
         item.ClaimedAt = DateTime.UtcNow;
 
@@ -152,7 +152,6 @@ public class LostFoundController : Controller
                 d.Name.ToLower().Contains("front desk"));
         if (fdDept != null)
         {
-            var user = await _userManager.GetUserAsync(User);
             await _notifications.NotifyDepartmentAsync(
                 hotelId.Value, fdDept.Id,
                 $"Item Claimed: {item.ItemDescription}",

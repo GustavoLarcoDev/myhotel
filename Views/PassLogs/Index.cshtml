@@ -54,7 +54,7 @@
     <h2 class="text-lg font-semibold text-gray-900 mb-4">New Pass Log</h2>
     <form asp-controller="PassLogs" asp-action="Create" method="post">
         @Html.AntiForgeryToken()
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Shift From</label>
                 <select name="shiftFrom" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
@@ -80,11 +80,6 @@
                     <option value="high">High</option>
                     <option value="urgent">Urgent</option>
                 </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                <input type="text" name="createdBy" required placeholder="Enter your name"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
             </div>
         </div>
         <div class="mb-4">
@@ -185,8 +180,6 @@ else
                                     <form asp-controller="PassLogs" asp-action="MarkAsRead" method="post" class="flex items-center gap-1">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@entry.Id" />
-                                        <input type="text" name="readBy" required placeholder="Your name"
-                                               class="border border-gray-300 rounded-lg px-2 py-1 text-xs w-28 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors">
                                             Mark Read
                                         </button>
@@ -269,8 +262,6 @@ else
                                     <form asp-controller="PassLogs" asp-action="MarkAsRead" method="post" class="flex items-center gap-1">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@entry.Id" />
-                                        <input type="text" name="readBy" required placeholder="Your name"
-                                               class="border border-gray-300 rounded-lg px-2 py-1 text-xs w-28 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors">
                                             Mark Read
                                         </button>
