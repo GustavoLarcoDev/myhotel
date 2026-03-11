@@ -1,0 +1,99 @@
+@using MyHotel.Web.Models.Entities
+@{
+    ViewData["Title"] = "Create Employee";
+    var hotels = ViewBag.Hotels as List<Hotel>;
+    var departments = ViewBag.Departments as List<Department>;
+}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div>
+        <a href="/Management/Users" class="text-sm text-blue-600 hover:underline">← Back to Staff</a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-2">Create Employee</h1>
+        <p class="text-sm text-gray-500 mt-1">Add a new employee to your hotel</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        @Html.AntiForgeryToken()
+
+        <!-- Employee Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Employee Information</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">First Name *</label>
+                    <input type="text" name="firstName" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Last Name *</label>
+                    <input type="text" name="lastName" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Email *</label>
+                    <input type="email" name="email" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+                    <input type="text" name="phone"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Password *</label>
+                    <input type="password" name="password" required minlength="4"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Assignment</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Hotel *</label>
+                    <select name="hotelId" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        @if (hotels != null)
+                        {
+                            @foreach (var hotel in hotels)
+                            {
+                                <option value="@hotel.Id">@hotel.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Role *</label>
+                    <select name="role" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="@AppRole.Employee">Employee</option>
+                        <option value="@AppRole.DepartmentManager">Department Manager</option>
+                        <option value="@AppRole.AssistantGM">Assistant GM</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Department</label>
+                    <select name="departmentId" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="">— No department —</option>
+                        @if (departments != null)
+                        {
+                            @foreach (var dept in departments)
+                            {
+                                <option value="@dept.Id">@dept.Name (@dept.Hotel?.Name)</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                Create Employee
+            </button>
+            <a href="/Management/Users" class="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>

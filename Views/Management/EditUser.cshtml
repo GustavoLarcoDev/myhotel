@@ -1,0 +1,121 @@
+@model MyHotel.Web.Models.Entities.ApplicationUser
+@using MyHotel.Web.Models.Entities
+@{
+    ViewData["Title"] = "Edit Employee";
+    var hotels = ViewBag.Hotels as List<Hotel>;
+    var departments = ViewBag.Departments as List<Department>;
+    var currentRole = Model.HotelRoles?.FirstOrDefault();
+    var currentDept = Model.Departments?.FirstOrDefault();
+}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div>
+        <a href="/Management/Users" class="text-sm text-blue-600 hover:underline">← Back to Staff</a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Employee</h1>
+        <p class="text-sm text-gray-500 mt-1">@Model.FullName</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        @Html.AntiForgeryToken()
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Employee Information</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">First Name</label>
+                    <input type="text" name="firstName" value="@Model.FirstName" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Last Name</label>
+                    <input type="text" name="lastName" value="@Model.LastName" required
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                    <input type="email" value="@Model.Email" disabled
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 bg-gray-50 text-gray-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+                    <input type="text" name="phone" value="@Model.Phone"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="isActive" value="true" @(Model.IsActive ? "checked" : "")
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                        <span class="text-sm font-medium text-gray-700">Active</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Assignment</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Hotel</label>
+                    <select name="hotelId" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        @if (hotels != null)
+                        {
+                            @foreach (var hotel in hotels)
+                            {
+                                var hotelSelected = currentRole?.HotelId == hotel.Id;
+                                if (hotelSelected)
+                                {
+                                    <option value="@hotel.Id" selected="selected">@hotel.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@hotel.Id">@hotel.Name</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Role</label>
+                    @{
+                        var roleVal = currentRole?.Role;
+                    }
+                    <select name="role" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        @if (roleVal == AppRole.Employee) { <option value="@AppRole.Employee" selected="selected">Employee</option> } else { <option value="@AppRole.Employee">Employee</option> }
+                        @if (roleVal == AppRole.DepartmentManager) { <option value="@AppRole.DepartmentManager" selected="selected">Department Manager</option> } else { <option value="@AppRole.DepartmentManager">Department Manager</option> }
+                        @if (roleVal == AppRole.AssistantGM) { <option value="@AppRole.AssistantGM" selected="selected">Assistant GM</option> } else { <option value="@AppRole.AssistantGM">Assistant GM</option> }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Department</label>
+                    <select name="departmentId" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <option value="">— No department —</option>
+                        @if (departments != null)
+                        {
+                            @foreach (var dept in departments)
+                            {
+                                var deptSelected = currentDept?.DepartmentId == dept.Id;
+                                if (deptSelected)
+                                {
+                                    <option value="@dept.Id" selected="selected">@dept.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@dept.Id">@dept.Name</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                Save Changes
+            </button>
+            <a href="/Management/Users" class="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>

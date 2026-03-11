@@ -40,3 +40,20 @@ public class AdminCreateHotelViewModel
     public string? GmLastName { get; set; }
     public string? GmPassword { get; set; }
 }
+
+public class AdminCreateGMViewModel
+{
+    // GM info
+    [Required] public string FirstName { get; set; } = "";
+    [Required] public string LastName { get; set; } = "";
+    [Required] [EmailAddress] public string Email { get; set; } = "";
+    public string? Phone { get; set; }
+    [Required] [MinLength(4)] public string Password { get; set; } = "";
+
+    // First hotel info
+    [Required] [Display(Name = "Hotel Name")] public string HotelName { get; set; } = "";
+    [Display(Name = "Address")] public string? HotelAddress { get; set; }
+    [Display(Name = "City")] public string? HotelCity { get; set; }
+    [Display(Name = "State")] public string? HotelState { get; set; }
+    [Display(Name = "Phone")] public string? HotelPhone { get; set; }
+}

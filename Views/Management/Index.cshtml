@@ -1,0 +1,115 @@
+@{
+    ViewData["Title"] = "Hotel Management";
+    var hotels = ViewBag.Hotels as List<MyHotel.Web.Models.Entities.Hotel>;
+}
+
+<div class="space-y-8">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Hotel Management</h1>
+            <p class="text-sm text-gray-500 mt-1">Overview of your hotels and operations</p>
+        </div>
+        <a href="/Management/CreateHotel" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+            + New Hotel
+        </a>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="/Management/MyHotels" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">My Hotels</p>
+                    <p class="text-2xl font-bold text-gray-900">@ViewBag.HotelCount</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="/Management/Users" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Total Staff</p>
+                    <p class="text-2xl font-bold text-gray-900">@ViewBag.TotalUsers</p>
+                </div>
+            </div>
+        </a>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Total Rooms</p>
+                    <p class="text-2xl font-bold text-gray-900">@ViewBag.TotalRooms</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="/Management/Departments" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Departments</p>
+                    <p class="text-2xl font-bold text-gray-900">@ViewBag.TotalDepartments</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="/Management/CreateHotel" class="flex items-center gap-3 p-4 bg-blue-50 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                <span class="font-medium text-sm">Add Hotel</span>
+            </a>
+            <a href="/Management/CreateUser" class="flex items-center gap-3 p-4 bg-green-50 rounded-xl text-green-700 hover:bg-green-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                <span class="font-medium text-sm">Add Employee</span>
+            </a>
+            <a href="/Management/Users" class="flex items-center gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span class="font-medium text-sm">View Staff</span>
+            </a>
+            <a href="/Management/Departments" class="flex items-center gap-3 p-4 bg-purple-50 rounded-xl text-purple-700 hover:bg-purple-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <span class="font-medium text-sm">Departments</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Hotels Overview -->
+    @if (hotels != null && hotels.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">My Hotels</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach (var hotel in hotels)
+                {
+                    <a href="/Dashboard/SwitchHotel?hotelId=@hotel.Id" class="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all">
+                        <h3 class="font-semibold text-gray-900">@hotel.Name</h3>
+                        @if (!string.IsNullOrEmpty(hotel.City))
+                        {
+                            <p class="text-sm text-gray-500 mt-1">@hotel.City@(hotel.State != null ? $", {hotel.State}" : "")</p>
+                        }
+                        <div class="flex gap-4 mt-3 text-xs text-gray-500">
+                            <span>@hotel.UserRoles.Count staff</span>
+                            <span>@hotel.Rooms.Count rooms</span>
+                            <span>@hotel.Departments.Count depts</span>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+</div>
