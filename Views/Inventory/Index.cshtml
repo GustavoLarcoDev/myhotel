@@ -219,7 +219,7 @@
             @if (!items.Any())
             {
                 <form method="post" action="/Inventory/DeleteCategory" class="inline"
-                      onsubmit="return confirm('Delete this category?')">
+                      onsubmit="return swalConfirm(this, 'Delete this category?')">
                     <input type="hidden" name="id" value="@category.Id" />
                     <input type="hidden" name="type" value="@currentType" />
                     @if (ViewBag.CurrentDept != null)
@@ -309,7 +309,7 @@
                             </button>
                             <!-- Delete -->
                             <form method="post" action="/Inventory/DeleteItem" class="inline"
-                                  onsubmit="return confirm('Delete @item.Name?')">
+                                  onsubmit="return swalConfirm(this, 'Delete @item.Name?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="hidden" name="type" value="@currentType" />

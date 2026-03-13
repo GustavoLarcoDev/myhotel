@@ -230,7 +230,7 @@ else
                             Claim
                         </button>
                         <form method="post" action="/LostFound/Dispose" class="inline"
-                              onsubmit="return confirm('Mark this item as disposed?')">
+                              onsubmit="return swalConfirm(this, 'Mark this item as disposed?')">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@item.Id" />
                             <button type="submit" class="bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-300 transition-colors">
@@ -239,7 +239,7 @@ else
                         </form>
                     }
                     <form method="post" action="/LostFound/Delete" class="inline ml-auto"
-                          onsubmit="return confirm('Delete this item permanently?')">
+                          onsubmit="return swalConfirm(this, 'Delete this item permanently?')">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@item.Id" />
                         <button type="submit" class="text-red-500 hover:text-red-700 px-2 py-1.5 rounded text-xs font-medium hover:bg-red-50 transition-colors">

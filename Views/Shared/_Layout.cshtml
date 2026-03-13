@@ -22,7 +22,116 @@
         }
         .dropdown button:focus { outline: none; }
         .dropdown button { outline: none; border: none; }
+
+        /* Theme: Light (default) */
+        [data-theme="light"] { --bg-base: 249 250 251; --bg-card: 255 255 255; --bg-nav: 255 255 255; --text-primary: 17 24 39; --text-secondary: 107 114 128; --border-color: 229 231 235; --accent: 37 99 235; }
+        /* Theme: Dark */
+        [data-theme="dark"] { --bg-base: 17 24 39; --bg-card: 31 41 55; --bg-nav: 17 24 39; --text-primary: 243 244 246; --text-secondary: 156 163 175; --border-color: 55 65 81; --accent: 96 165 250; }
+        [data-theme="dark"] body { background-color: rgb(17 24 39) !important; color: rgb(243 244 246) !important; }
+        [data-theme="dark"] .bg-white, [data-theme="dark"] .bg-gray-50 { background-color: rgb(31 41 55) !important; }
+        [data-theme="dark"] .bg-gray-100 { background-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .text-gray-900, [data-theme="dark"] .text-gray-800 { color: rgb(243 244 246) !important; }
+        [data-theme="dark"] .text-gray-700, [data-theme="dark"] .text-gray-600, [data-theme="dark"] .text-gray-500 { color: rgb(156 163 175) !important; }
+        [data-theme="dark"] .text-gray-400, [data-theme="dark"] .text-gray-300 { color: rgb(107 114 128) !important; }
+        [data-theme="dark"] .border-gray-200, [data-theme="dark"] .border-gray-100 { border-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .border-gray-300 { border-color: rgb(75 85 99) !important; }
+        [data-theme="dark"] .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important; }
+        [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { background-color: rgb(55 65 81) !important; color: rgb(243 244 246) !important; border-color: rgb(75 85 99) !important; }
+        [data-theme="dark"] .hover\:bg-gray-50:hover { background-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .hover\:bg-gray-100:hover { background-color: rgb(75 85 99) !important; }
+        [data-theme="dark"] table th { background-color: rgb(31 41 55) !important; color: rgb(156 163 175) !important; }
+        [data-theme="dark"] table td { border-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .swal2-popup { background: rgb(31 41 55) !important; color: rgb(243 244 246) !important; }
+        [data-theme="dark"] .swal2-title, [data-theme="dark"] .swal2-html-container { color: rgb(243 244 246) !important; }
+        [data-theme="dark"] .dropdown-menu { background-color: rgb(31 41 55) !important; border-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .dropdown-menu a, [data-theme="dark"] .dropdown-menu button { color: rgb(209 213 219) !important; }
+        [data-theme="dark"] .dropdown-menu a:hover, [data-theme="dark"] .dropdown-menu button:hover { background-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] nav { background-color: rgb(17 24 39) !important; border-color: rgb(55 65 81) !important; }
+        [data-theme="dark"] .bg-green-50 { background-color: rgb(20 51 36) !important; }
+        [data-theme="dark"] .bg-red-50 { background-color: rgb(51 20 20) !important; }
+        [data-theme="dark"] .bg-amber-50 { background-color: rgb(51 42 20) !important; }
+        [data-theme="dark"] .rounded-xl.shadow-sm { background-color: rgb(31 41 55) !important; }
+
+        /* Theme: Sunset */
+        [data-theme="sunset"] body { background-color: rgb(254 243 235) !important; }
+        [data-theme="sunset"] .bg-white { background-color: rgb(255 251 247) !important; }
+        [data-theme="sunset"] .bg-gray-50 { background-color: rgb(254 243 235) !important; }
+        [data-theme="sunset"] .bg-blue-600 { background-color: rgb(234 88 12) !important; }
+        [data-theme="sunset"] .bg-blue-700, [data-theme="sunset"] .hover\:bg-blue-700:hover { background-color: rgb(194 65 12) !important; }
+        [data-theme="sunset"] .text-blue-600 { color: rgb(234 88 12) !important; }
+        [data-theme="sunset"] .text-blue-700 { color: rgb(194 65 12) !important; }
+        [data-theme="sunset"] .border-blue-600 { border-color: rgb(234 88 12) !important; }
+        [data-theme="sunset"] .bg-blue-100 { background-color: rgb(255 237 213) !important; }
+        [data-theme="sunset"] .bg-blue-50 { background-color: rgb(255 247 237) !important; }
+        [data-theme="sunset"] .ring-blue-500 { --tw-ring-color: rgb(251 146 60) !important; }
+        [data-theme="sunset"] .focus\:ring-blue-500:focus { --tw-ring-color: rgb(251 146 60) !important; }
+        [data-theme="sunset"] nav, [data-theme="sunset"] .bg-white.shadow-sm.border-b { background-color: rgb(255 247 237) !important; }
+
+        /* Theme: Ocean */
+        [data-theme="ocean"] body { background-color: rgb(236 246 254) !important; }
+        [data-theme="ocean"] .bg-white { background-color: rgb(240 249 255) !important; }
+        [data-theme="ocean"] .bg-gray-50 { background-color: rgb(236 246 254) !important; }
+        [data-theme="ocean"] .bg-blue-600 { background-color: rgb(14 116 144) !important; }
+        [data-theme="ocean"] .bg-blue-700, [data-theme="ocean"] .hover\:bg-blue-700:hover { background-color: rgb(21 94 117) !important; }
+        [data-theme="ocean"] .text-blue-600 { color: rgb(14 116 144) !important; }
+        [data-theme="ocean"] .text-blue-700 { color: rgb(21 94 117) !important; }
+        [data-theme="ocean"] .border-blue-600 { border-color: rgb(14 116 144) !important; }
+        [data-theme="ocean"] .bg-blue-100 { background-color: rgb(207 250 254) !important; }
+        [data-theme="ocean"] .bg-blue-50 { background-color: rgb(236 254 255) !important; }
+        [data-theme="ocean"] .ring-blue-500 { --tw-ring-color: rgb(6 182 212) !important; }
+        [data-theme="ocean"] .focus\:ring-blue-500:focus { --tw-ring-color: rgb(6 182 212) !important; }
     </style>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('myhotel-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function swalConfirm(form, message) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: message || 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, proceed',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                form.removeAttribute('onsubmit');
+                form.submit();
+            }
+        });
+        return false;
+    }
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('myhotel-theme', theme);
+    }
+    function swalConfirmBtn(btn, message) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: message || 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, proceed',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                btn.removeAttribute('onclick');
+                btn.closest('form').submit();
+            }
+        });
+        return false;
+    }
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     @if (SignInManager.IsSignedIn(User))
@@ -199,6 +308,28 @@
                                 <span class="notification-badge absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">@unreadCount</span>
                             }
                         </a>
+
+                        <!-- Theme Switcher -->
+                        <div class="dropdown relative">
+                            <button class="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors" title="Change theme">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                            </button>
+                            <div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                                <div class="px-3 py-1.5 text-xs text-gray-400 font-semibold uppercase">Theme</div>
+                                <button onclick="setTheme('light')" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5">
+                                    <span class="w-4 h-4 rounded-full bg-gray-100 border-2 border-gray-300 flex-shrink-0"></span> Light
+                                </button>
+                                <button onclick="setTheme('dark')" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5">
+                                    <span class="w-4 h-4 rounded-full bg-gray-800 border-2 border-gray-600 flex-shrink-0"></span> Dark
+                                </button>
+                                <button onclick="setTheme('sunset')" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5">
+                                    <span class="w-4 h-4 rounded-full bg-orange-400 border-2 border-orange-300 flex-shrink-0"></span> Sunset
+                                </button>
+                                <button onclick="setTheme('ocean')" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5">
+                                    <span class="w-4 h-4 rounded-full bg-cyan-500 border-2 border-cyan-400 flex-shrink-0"></span> Ocean
+                                </button>
+                            </div>
+                        </div>
 
                         <!-- User Menu -->
                         <div class="dropdown relative">

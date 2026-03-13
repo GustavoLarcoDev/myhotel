@@ -213,7 +213,7 @@ else
                         </form>
 
                         <!-- Delete -->
-                        <form method="post" asp-action="Delete" onsubmit="return confirm('Delete this work order?')">
+                        <form method="post" asp-action="Delete" onsubmit="return swalConfirm(this, 'Delete this work order?')">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@wo.Id" />
                             <button type="submit" class="w-full px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors">Delete</button>
